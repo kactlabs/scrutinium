@@ -1,1 +1,6 @@
 requests==2.32.3
+langchain 
+langchain-anthropic 
+langchain-google-genai
+pandas 
+python-dotenv
