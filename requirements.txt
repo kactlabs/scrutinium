@@ -1,7 +1,7 @@
-requests==2.32.3
-langchain 
-langchain-anthropic 
-langchain-google-genai
-langchain-groq
-pandas 
-python-dotenv
+langchain==0.3.7
+langchain_anthropic==0.2.4
+langchain_core==0.3.63
+langchain_google_genai==2.0.5
+langchain_groq==0.2.1
+pandas==2.2.3
+python-dotenv==1.2.1
