@@ -2,33 +2,65 @@
 
 import os
 from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 import pandas as pd
 from typing import List, Dict
 import json
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+RESULTS_FOLDER = "results/"
 
 class GenAIBenchmarkJudge:
     """
     A judge system for evaluating GenAI tool responses using Claude via LangChain.
     """
     
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: str = None, provider: str = "anthropic"):
         """
-        Initialize the judge with Claude model.
+        Initialize the judge with specified model provider.
         
         Args:
-            api_key: Anthropic API key (if not provided, uses ANTHROPIC_API_KEY env variable)
+            api_key: API key for the chosen provider
+            provider: Model provider ("anthropic", "gemini", or "groq")
         """
-        if api_key:
-            os.environ["ANTHROPIC_API_KEY"] = api_key
+        self.provider = provider.lower()
         
-        # Initialize Claude model
-        self.llm = ChatAnthropic(
-            model="claude-sonnet-4-20250514",
-            temperature=0.3,  # Lower temperature for more consistent judgments
-            max_tokens=4000
-        )
+        if self.provider == "anthropic":
+            if api_key:
+                os.environ["ANTHROPIC_API_KEY"] = api_key
+            self.llm = ChatAnthropic(
+                model="claude-3-5-sonnet-20241022",
+                temperature=0.3,
+                max_tokens=4000
+            )
+        elif self.provider == "gemini":
+            # Get API key from parameter or environment variables
+            api_key_to_use = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+            if not api_key_to_use:
+                raise ValueError("Gemini API key not found. Set GEMINI_API_KEY or GOOGLE_API_KEY environment variable.")
+            
+            self.llm = ChatGoogleGenerativeAI(
+                model="gemini-2.5-flash",
+                temperature=0.3,
+                max_output_tokens=4000,
+                google_api_key=api_key_to_use
+            )
+        elif self.provider == "groq":
+            if api_key:
+                os.environ["GROQ_API_KEY"] = api_key
+            self.llm = ChatGroq(
+                model="llama-3.1-70b-versatile",
+                temperature=0.3,
+                max_tokens=4000
+            )
+        else:
+            raise ValueError(f"Unsupported provider: {provider}. Choose from 'anthropic', 'gemini', or 'groq'")
         
         # Define the evaluation prompt template
         self.prompt_template = ChatPromptTemplate.from_messages([
@@ -111,7 +143,7 @@ Please evaluate these responses according to the metrics defined above.""")
         
         # Parse JSON response
         try:
-            # Claude sometimes wraps JSON in markdown code blocks
+            # Some models wrap JSON in markdown code blocks
             if "```json" in result:
                 result = result.split("```json")[1].split("```")[0].strip()
             elif "```" in result:
@@ -201,24 +233,26 @@ Please evaluate these responses according to the metrics defined above.""")
 
 # Usage with free provider
 def main():
-    # Use Gemini (Free)
+    # Example 1: Use Gemini (Free with API key)
+    print("Using Gemini for evaluation...")
     judge = GenAIBenchmarkJudge(
-        api_key="YOUR_GOOGLE_API_KEY",
+        api_key=os.getenv("GEMINI_API_KEY"),  # Set your GEMINI_API_KEY environment variable
         provider="gemini"
     )
     
-    # Or use Groq (Free)
+    # Example 2: Use Groq (Free with API key) - uncomment to use
+    # print("Using Groq for evaluation...")
     # judge = GenAIBenchmarkJudge(
-    #     api_key="YOUR_GROQ_API_KEY",
+    #     api_key=os.getenv("GROQ_API_KEY"),  # Set your GROQ_API_KEY environment variable
     #     provider="groq"
     # )
-
-    # Initialize the judge
-    # Option 1: Pass API key directly
-    # judge = GenAIBenchmarkJudge(api_key="your-api-key-here")
     
-    # Option 2: Use environment variable ANTHROPIC_API_KEY
-    # judge = GenAIBenchmarkJudge()
+    # Example 3: Use Anthropic Claude (requires paid API key) - uncomment to use
+    # print("Using Claude for evaluation...")
+    # judge = GenAIBenchmarkJudge(
+    #     api_key=os.getenv("ANTHROPIC_API_KEY"),  # Set your ANTHROPIC_API_KEY environment variable
+    #     provider="anthropic"
+    # )
     
     # Define the question
     question = "Who was the first Canadian prime minister?"
@@ -267,7 +301,7 @@ Note on Modern Perspective: While Macdonald is celebrated as a nation-builder, h
     }
     
     # Run evaluation
-    print("Running evaluation with Claude...")
+    print(f"Running evaluation with {judge.provider.title()}...")
     evaluation_results = judge.evaluate(question, responses)
     
     # Print detailed report
@@ -276,11 +310,11 @@ Note on Modern Perspective: While Macdonald is celebrated as a nation-builder, h
     # Optionally save results to CSV
     df = judge.create_results_table(evaluation_results)
     if df is not None:
-        df.to_csv("genai_benchmark_results.csv", index=False)
+        df.to_csv(f"{RESULTS_FOLDER}genai_benchmark_results.csv", index=False)
         print("\n✓ Results saved to 'genai_benchmark_results.csv'")
     
     # Optionally save full evaluation to JSON
-    with open("genai_benchmark_full_results.json", "w") as f:
+    with open(f"{RESULTS_FOLDER}genai_benchmark_full_results.json", "w") as f:
         json.dump(evaluation_results, f, indent=2)
         print("✓ Full evaluation saved to 'genai_benchmark_full_results.json'")
 

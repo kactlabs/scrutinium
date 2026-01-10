@@ -151,3 +151,7 @@ uploads/*
 sample/
 sampleui/
 sample_ui/
+
+# custom
+results/*
+!results/.gitkeep
