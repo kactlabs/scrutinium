@@ -7,12 +7,19 @@ from typing import Dict, Optional
 import uvicorn
 import os
 from business import GenAIBenchmarkJudge
+from db import benchmark_handler
+
+# Import the new controller
+from controllers.benchmark_controller import router as benchmark_router
 
 app = FastAPI(title="GenAI Benchmark Tool", description="Compare and evaluate responses from various GenAI tools")
 
 # Mount static files and templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+# Include routers
+app.include_router(benchmark_router)
 
 class EvaluationRequest(BaseModel):
     question: str
@@ -40,6 +47,19 @@ async def evaluate_responses(request: EvaluationRequest):
         
         if "error" in evaluation_results:
             raise HTTPException(status_code=500, detail=evaluation_results["error"])
+        
+        # Save results to MongoDB
+        try:
+            scid = await benchmark_handler.save_evaluation_results(
+                judge=request.provider,
+                question=request.question,
+                responses=request.responses,
+                evaluation_data=evaluation_results
+            )
+            evaluation_results["scid"] = scid
+        except Exception as db_error:
+            print(f"Warning: Failed to save to MongoDB: {db_error}")
+            # Continue without failing the evaluation
         
         # Create results table data
         df = judge.create_results_table(evaluation_results)
