@@ -83,6 +83,24 @@ async def get_benchmark_result(scid: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/uuid/{share_uuid}")
+async def get_benchmark_result_by_uuid(share_uuid: str):
+    """
+    Get a specific benchmark result by share UUID
+    """
+    try:
+        result = await benchmark_handler.get_benchmark_result_by_uuid(share_uuid)
+        if not result:
+            raise HTTPException(status_code=404, detail="Benchmark result not found")
+        return {
+            "success": True,
+            "result": result
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/")
 async def create_benchmark_result(benchmark_data: BenchmarkCreate):
     """

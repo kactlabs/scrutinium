@@ -835,3 +835,119 @@ body.dark .winner-details {
     text-align: center;
     font-size: 18px;
 }
+
+/* Share functionality styles */
+.share-section {
+    background: #e8f4fd;
+    border: 2px solid #3498db;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+body.dark .share-section {
+    background: #1a2a3a;
+    border-color: #3498db;
+}
+
+.share-section h4 {
+    color: #2980b9;
+    font-size: 20px;
+    margin-bottom: 16px;
+}
+
+body.dark .share-section h4 {
+    color: #3498db;
+}
+
+.share-link-container {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.share-link-container input[type="text"] {
+    flex: 1;
+    min-width: 300px;
+    font-family: monospace;
+    font-size: 14px;
+    background: #ffffff;
+    border: 2px solid #bdc3c7;
+    padding: 12px 16px;
+}
+
+body.dark .share-link-container input[type="text"] {
+    background: #2a2a2a;
+    border-color: #404040;
+    color: #e5e5e5;
+}
+
+.copy-btn, .view-btn {
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.copy-btn {
+    background: #3498db;
+    color: white;
+}
+
+.copy-btn:hover {
+    background: #2980b9;
+    transform: translateY(-1px);
+}
+
+.view-btn {
+    background: #2ecc71;
+    color: white;
+}
+
+.view-btn:hover {
+    background: #27ae60;
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
+.share-note {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin: 0;
+    font-style: italic;
+}
+
+body.dark .share-note {
+    color: #bdc3c7;
+}
+
+/* Responsive adjustments for share section */
+@media (max-width: 768px) {
+    .share-link-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .share-link-container input[type="text"] {
+        min-width: auto;
+        width: 100%;
+        margin-bottom: 8px;
+    }
+    
+    .copy-btn, .view-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

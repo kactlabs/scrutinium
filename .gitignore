@@ -155,3 +155,4 @@ sample_ui/
 # custom
 results/*
 !results/.gitkeep
+.vercel

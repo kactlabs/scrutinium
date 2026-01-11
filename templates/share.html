@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared GenAI Benchmark Results</title>
+    <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .share-header {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 2rem 0;
+            margin: -40px -40px 40px -40px;
+            border-radius: 12px 12px 0 0;
+        }
+        .share-header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .share-header h1 {
+            color: white;
+            margin-bottom: 8px;
+            font-size: 32px;
+            text-align: left;
+        }
+        .share-header p {
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0;
+            font-size: 16px;
+        }
+        .copy-link-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .copy-link-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        .question-section {
+            background: #fff9e6;
+            border: 2px solid #f39c12;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 40px;
+            border-left: 6px solid #f39c12;
+        }
+        body.dark .question-section {
+            background: #2a2416;
+            border-color: #f39c12;
+        }
+        .question-section h3 {
+            color: #e67e22;
+            margin-bottom: 16px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        body.dark .question-section h3 {
+            color: #f39c12;
+        }
+        .question-text {
+            color: #2c3e50;
+            font-size: 18px;
+            line-height: 1.6;
+            margin: 0;
+        }
+        body.dark .question-text {
+            color: #e5e5e5;
+        }
+        .tool-response-text {
+            background: #f8f9fa;
+            border: 2px solid #e1e8ed;
+            border-left: 4px solid #3498db;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 16px;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #2c3e50;
+        }
+        body.dark .tool-response-text {
+            background: #1a1a1a;
+            border-color: #404040;
+            border-left-color: #3498db;
+            color: #e5e5e5;
+        }
+        @media (max-width: 768px) {
+            .share-header {
+                margin: -20px -20px 30px -20px;
+                padding: 1.5rem 0;
+            }
+            .share-header-content {
+                padding: 0 20px;
+                flex-direction: column;
+                text-align: center;
+            }
+            .share-header h1 {
+                font-size: 28px;
+                text-align: center;
+            }
+            .question-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌓</button>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="share-header">
+            <div class="share-header-content">
+                <div>
+                    <h1>🔗 Shared GenAI Benchmark Results</h1>
+                    <p>Evaluated by {{ judge|title }} • {{ created_at.strftime('%B %d, %Y at %I:%M %p') if created_at else 'Recently' }}</p>
+                </div>
+                <button class="copy-link-btn" onclick="copyShareLink()">
+                    📋 Copy Link
+                </button>
+            </div>
+        </div>
+
+        <!-- Question Section -->
+        <div class="question-section">
+            <h3>❓ Question</h3>
+            <p class="question-text">{{ question }}</p>
+        </div>
+
+        <!-- Results Section - Matching Main Page Format -->
+        <div class="visualization-section">
+            <h3>📊 Evaluation Results</h3>
+            
+            <!-- Results Table -->
+            <div class="results-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Tool</th>
+                            <th>Truthfulness</th>
+                            <th>Creativity</th>
+                            <th>Coherence & Reasoning</th>
+                            <th>Utility/Actionability</th>
+                            <th>Overall Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in table_data %}
+                        {% set rank_emoji = '🥇' if loop.index0 == 0 else '🥈' if loop.index0 == 1 else '🥉' if loop.index0 == 2 else loop.index ~ '.' %}
+                        {% set row_class = 'winner-row' if loop.index0 == 0 else '' %}
+                        <tr class="{{ row_class }}">
+                            <td><strong>{{ rank_emoji }}</strong></td>
+                            <td><strong>{{ row.tool }}</strong></td>
+                            <td>{{ row.truthfulness }}/10</td>
+                            <td>{{ row.creativity }}/10</td>
+                            <td>{{ row.coherence }}/10</td>
+                            <td>{{ row.utility }}/10</td>
+                            <td><strong>{{ "%.1f"|format(row.overall_score) }}/10</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Winner Section -->
+            {% if result.winner %}
+            <div class="winner-section">
+                <h4>🏆 Winner: {{ result.winner }}</h4>
+                <p>{{ result.winner_reasoning }}</p>
+                {% if result.ranking %}
+                <p><strong>Ranking:</strong> {{ result.ranking|join(' > ') }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Detailed Tool Evaluations -->
+            <div class="detailed-results">
+                {% for row in table_data %}
+                {% set tool_lower = row.tool.lower() %}
+                {% set rank_emoji = '🥇' if loop.index0 == 0 else '🥈' if loop.index0 == 1 else '🥉' if loop.index0 == 2 else '' %}
+                {% set winner_class = 'winner-details' if loop.index0 == 0 else '' %}
+                
+                <div class="tool-details {{ winner_class }}">
+                    <h4>{{ rank_emoji }} {{ row.tool }} ({{ "%.1f"|format(row.overall_score) }}/10)</h4>
+                    <div class="metric-details">
+                        <p><strong>Truthfulness ({{ row.truthfulness }}/10):</strong> {{ metrics.truthfulness.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
+                        <p><strong>Creativity ({{ row.creativity }}/10):</strong> {{ metrics.creativity.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
+                        <p><strong>Coherence ({{ row.coherence }}/10):</strong> {{ metrics.coherence.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
+                        <p><strong>Utility ({{ row.utility }}/10):</strong> {{ metrics.utility.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
+                    </div>
+                    
+                    <!-- Tool Response -->
+                    {% if answers.get(row.tool) %}
+                    <div class="tool-response-text">
+                        <strong>Response:</strong><br>
+                        {{ answers[row.tool] }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="form-section" style="text-align: center; margin-top: 50px;">
+            <p style="color: #7f8c8d; margin-bottom: 8px;">
+                🧪 Generated by Scrutinium - Cross-GenAI Benchmarking Tool
+            </p>
+            <p style="color: #95a5a6; font-size: 14px; margin: 0;">
+                Share ID: {{ share_uuid }}
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Load theme preference
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark');
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            const theme = document.body.classList.contains('dark') ? 'dark' : 'light';
+            localStorage.setItem('theme', theme);
+        }
+
+        function copyShareLink() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(function() {
+                // Show success feedback
+                const btn = document.querySelector('.copy-link-btn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.style.background = 'rgba(46, 204, 113, 0.3)';
+                
+                setTimeout(function() {
+                    btn.innerHTML = originalText;
+                    btn.style.background = 'rgba(255, 255, 255, 0.2)';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+                alert('Failed to copy link. Please copy manually: ' + url);
+            });
+        }
+    </script>
+</body>
+</html>

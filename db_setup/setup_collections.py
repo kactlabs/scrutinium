@@ -37,6 +37,10 @@ async def setup_mongodb():
         # Create indexes for better performance
         print(f"📊 Setting up indexes for {collection_name}...")
         
+        # Index on share_uuid (unique)
+        await collection.create_index("share_uuid", unique=True)
+        print("✓ Created unique index on 'share_uuid'")
+        
         # Index on scid (unique)
         await collection.create_index("scid", unique=True)
         print("✓ Created unique index on 'scid'")
@@ -58,6 +62,7 @@ async def setup_mongodb():
         
         sample_doc = {
             "scid": 12001,
+            "share_uuid": "ddcf90dd-609a-4969-9759-f9cccbc3c569",
             "judge": "gemini",
             "question": "Sample question for schema verification",
             "chatgpt_answer": "Sample ChatGPT answer",
@@ -91,6 +96,26 @@ async def setup_mongodb():
                 "chatgpt": 8.0,
                 "deepseek": 8.5,
                 "claude": 8.75
+            },
+            "truthfulness_details": {
+                "chatgpt": "Good factual accuracy with minor inconsistencies",
+                "deepseek": "Excellent accuracy and well-researched information",
+                "claude": "Highly accurate with comprehensive fact-checking"
+            },
+            "creativity_details": {
+                "chatgpt": "Standard approach with some creative elements",
+                "deepseek": "Creative problem-solving and unique perspectives",
+                "claude": "Very creative with innovative examples and analogies"
+            },
+            "coherence_details": {
+                "chatgpt": "Well-structured with clear logical flow",
+                "deepseek": "Good organization with minor structural issues",
+                "claude": "Excellent coherence and seamless reasoning"
+            },
+            "utility_details": {
+                "chatgpt": "Practical advice with actionable insights",
+                "deepseek": "Highly useful with real-world applications",
+                "claude": "Useful information with clear implementation guidance"
             }
         }
         

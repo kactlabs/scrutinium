@@ -50,13 +50,15 @@ async def evaluate_responses(request: EvaluationRequest):
         
         # Save results to MongoDB
         try:
-            scid = await benchmark_handler.save_evaluation_results(
+            scid, share_uuid = await benchmark_handler.save_evaluation_results(
                 judge=request.provider,
                 question=request.question,
                 responses=request.responses,
                 evaluation_data=evaluation_results
             )
             evaluation_results["scid"] = scid
+            evaluation_results["share_uuid"] = share_uuid
+            evaluation_results["share_url"] = f"/share/{share_uuid}"
         except Exception as db_error:
             print(f"Warning: Failed to save to MongoDB: {db_error}")
             # Continue without failing the evaluation
@@ -82,6 +84,104 @@ async def results_page(request: Request):
         "title": "Evaluation Results",
         "subtitle": "GenAI Tool Comparison Results"
     })
+
+@app.get("/share/{share_uuid}", response_class=HTMLResponse)
+async def share_results(request: Request, share_uuid: str):
+    """Share page to display evaluation results by UUID"""
+    try:
+        # Get the benchmark result by UUID
+        result = await benchmark_handler.get_benchmark_result_by_uuid(share_uuid)
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Shared result not found")
+        
+        # Prepare data for template
+        answers = {
+            "ChatGPT": result.get("chatgpt_answer", ""),
+            "Kimi": result.get("kimi_answer", ""),
+            "DeepSeek": result.get("deepseek_answer", ""),
+            "Qwen": result.get("qwen_answer", ""),
+            "Mistral": result.get("mistral_answer", ""),
+            "Claude": result.get("claude_answer", ""),
+            "Grok": result.get("grok_answer", "")
+        }
+        
+        # Filter out empty answers
+        answers = {k: v for k, v in answers.items() if v.strip()}
+        
+        # Prepare metrics data
+        metrics = {
+            "truthfulness": {
+                "scores": result.get("truthfulness", {}),
+                "details": result.get("truthfulness_details", {})
+            },
+            "creativity": {
+                "scores": result.get("creativity", {}),
+                "details": result.get("creativity_details", {})
+            },
+            "coherence": {
+                "scores": result.get("coherence", {}),
+                "details": result.get("coherence_details", {})
+            },
+            "utility": {
+                "scores": result.get("utility", {}),
+                "details": result.get("utility_details", {})
+            },
+            "overall_score": {
+                "scores": result.get("overall_score", {}),
+                "details": {}
+            }
+        }
+        
+        # Create results table data (sorted by overall score)
+        table_data = []
+        for tool in answers.keys():
+            tool_lower = tool.lower()
+            overall_score = metrics["overall_score"]["scores"].get(tool_lower, 0)
+            # Ensure overall_score is a number
+            try:
+                overall_score = float(overall_score) if overall_score else 0
+            except (ValueError, TypeError):
+                overall_score = 0
+                
+            table_data.append({
+                "tool": tool,
+                "truthfulness": int(metrics["truthfulness"]["scores"].get(tool_lower, 0)),
+                "creativity": int(metrics["creativity"]["scores"].get(tool_lower, 0)),
+                "coherence": int(metrics["coherence"]["scores"].get(tool_lower, 0)),
+                "utility": int(metrics["utility"]["scores"].get(tool_lower, 0)),
+                "overall_score": overall_score
+            })
+        
+        # Debug: Print scores before sorting
+        print("Before sorting:")
+        for item in table_data:
+            print(f"{item['tool']}: {item['overall_score']}")
+        
+        # Sort by overall score descending
+        table_data.sort(key=lambda x: x["overall_score"], reverse=True)
+        
+        # Debug: Print scores after sorting
+        print("After sorting:")
+        for item in table_data:
+            print(f"{item['tool']}: {item['overall_score']}")
+        
+        return templates.TemplateResponse("share.html", {
+            "request": request,
+            "result": result,
+            "question": result.get("question", ""),
+            "answers": answers,
+            "metrics": metrics,
+            "table_data": table_data,
+            "judge": result.get("judge", ""),
+            "created_at": result.get("created_at", ""),
+            "share_uuid": share_uuid
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8014)

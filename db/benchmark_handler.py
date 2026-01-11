@@ -3,6 +3,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 from typing import Dict, List, Optional
 from datetime import datetime
+import uuid
 
 # Load environment variables
 load_dotenv()
@@ -31,7 +32,12 @@ async def create_benchmark_result(
     creativity: Dict = None,
     coherence: Dict = None,
     utility: Dict = None,
-    overall_score: Dict = None
+    overall_score: Dict = None,
+    truthfulness_details: Dict = None,
+    creativity_details: Dict = None,
+    coherence_details: Dict = None,
+    utility_details: Dict = None,
+    share_uuid: str = None
 ):
     """
     Create a new benchmark result with auto-increment scid starting from ID_STARTING_INDEX
@@ -48,11 +54,17 @@ async def create_benchmark_result(
     else:
         next_scid = max(last_result["scid"] + 1, ID_STARTING_INDEX)
     
+    # Generate UUID for sharing if not provided
+    if not share_uuid:
+        share_uuid = str(uuid.uuid4())
+    
     # Default empty JSON structures for scoring metrics
     default_scores = {}
+    default_details = {}
     
     benchmark_doc = {
         "scid": next_scid,
+        "share_uuid": share_uuid,
         "judge": judge,
         "question": question,
         "chatgpt_answer": chatgpt_answer,
@@ -67,11 +79,15 @@ async def create_benchmark_result(
         "coherence": coherence or default_scores,
         "utility": utility or default_scores,
         "overall_score": overall_score or default_scores,
+        "truthfulness_details": truthfulness_details or default_details,
+        "creativity_details": creativity_details or default_details,
+        "coherence_details": coherence_details or default_details,
+        "utility_details": utility_details or default_details,
         "created_at": datetime.utcnow()
     }
     
     await benchmark_collection.insert_one(benchmark_doc)
-    return next_scid
+    return next_scid, share_uuid
 
 async def save_evaluation_results(
     judge: str,
@@ -80,7 +96,7 @@ async def save_evaluation_results(
     evaluation_data: Dict
 ):
     """
-    Save evaluation results to MongoDB with proper structure
+    Save evaluation results to MongoDB with proper structure including detailed explanations
     """
     # Extract individual responses
     chatgpt_answer = responses.get("ChatGPT", "")
@@ -98,17 +114,31 @@ async def save_evaluation_results(
     utility_scores = {}
     overall_scores = {}
     
-    # Extract scores from evaluation data
+    # Process detailed explanations
+    truthfulness_details = {}
+    creativity_details = {}
+    coherence_details = {}
+    utility_details = {}
+    
+    # Extract scores and details from evaluation data
     for eval_item in evaluation_data.get("evaluations", []):
         tool_name = eval_item["tool"].lower()
+        
+        # Scores
         truthfulness_scores[tool_name] = eval_item["truthfulness"]["score"]
         creativity_scores[tool_name] = eval_item["creativity"]["score"]
         coherence_scores[tool_name] = eval_item["coherence"]["score"]
         utility_scores[tool_name] = eval_item["utility"]["score"]
         overall_scores[tool_name] = eval_item["overall_score"]
+        
+        # Detailed explanations
+        truthfulness_details[tool_name] = eval_item["truthfulness"]["reasoning"]
+        creativity_details[tool_name] = eval_item["creativity"]["reasoning"]
+        coherence_details[tool_name] = eval_item["coherence"]["reasoning"]
+        utility_details[tool_name] = eval_item["utility"]["reasoning"]
     
     # Create the benchmark result
-    scid = await create_benchmark_result(
+    scid, share_uuid = await create_benchmark_result(
         judge=judge,
         question=question,
         chatgpt_answer=chatgpt_answer,
@@ -122,10 +152,24 @@ async def save_evaluation_results(
         creativity=creativity_scores,
         coherence=coherence_scores,
         utility=utility_scores,
-        overall_score=overall_scores
+        overall_score=overall_scores,
+        truthfulness_details=truthfulness_details,
+        creativity_details=creativity_details,
+        coherence_details=coherence_details,
+        utility_details=utility_details
     )
     
-    return scid
+    return scid, share_uuid
+
+async def get_benchmark_result_by_uuid(share_uuid: str):
+    """
+    Fetch a specific benchmark result by share UUID
+    """
+    result = await benchmark_collection.find_one(
+        {"share_uuid": share_uuid}, 
+        {"_id": 0}
+    )
+    return result
 
 async def get_all_benchmark_results():
     """

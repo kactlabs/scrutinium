@@ -239,8 +239,25 @@
                 return b['Overall Score'] - a['Overall Score'];
             });
 
+            // Create share link section if available
+            let shareHTML = '';
+            if (data.evaluation_results.share_url) {
+                const shareUrl = window.location.origin + data.evaluation_results.share_url;
+                shareHTML = `
+                    <div class="share-section">
+                        <h4>🔗 Share Results</h4>
+                        <div class="share-link-container">
+                            <input type="text" id="shareUrl" value="${shareUrl}" readonly>
+                            <button onclick="copyShareUrl()" class="copy-btn">📋 Copy Link</button>
+                            <a href="${data.evaluation_results.share_url}" target="_blank" class="view-btn">👁️ View Shared Page</a>
+                        </div>
+                        <p class="share-note">Share this link to let others view these evaluation results</p>
+                    </div>
+                `;
+            }
+
             // Create results table
-            let tableHTML = `
+            let tableHTML = shareHTML + `
                 <div class="results-table">
                     <table>
                         <thead>
@@ -319,6 +336,27 @@
             detailedResults.innerHTML = detailedHTML;
 
             resultsSection.style.display = 'block';
+        }
+
+        function copyShareUrl() {
+            const shareUrlInput = document.getElementById('shareUrl');
+            shareUrlInput.select();
+            shareUrlInput.setSelectionRange(0, 99999); // For mobile devices
+            
+            navigator.clipboard.writeText(shareUrlInput.value).then(function() {
+                const copyBtn = document.querySelector('.copy-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅ Copied!';
+                copyBtn.style.backgroundColor = '#28a745';
+                
+                setTimeout(function() {
+                    copyBtn.textContent = originalText;
+                    copyBtn.style.backgroundColor = '';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+                alert('Failed to copy link. Please copy manually.');
+            });
         }
 
         function showStatus(message, type) {
