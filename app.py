@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi import FastAPI, Request, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from business import GenAIBenchmarkJudge
 from db import benchmark_handler
+from starlette.middleware.sessions import SessionMiddleware
 
 # Load environment variables
 load_dotenv()
@@ -18,6 +19,9 @@ load_dotenv()
 from controllers.benchmark_controller import router as benchmark_router
 
 app = FastAPI(title="Scrutinium: Cross-GenAI Benchmarking", description="Compare and evaluate responses from various GenAI tools")
+
+# Add session middleware for handling user API keys
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET_KEY", "your-secret-key-here"))
 
 # Mount static files and templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -30,6 +34,7 @@ class EvaluationRequest(BaseModel):
     question: str
     responses: Dict[str, str]
     provider: Optional[str] = "gemini"
+    user_api_key: Optional[str] = None
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -41,17 +46,40 @@ async def home(request: Request):
     })
 
 @app.post("/evaluate")
-async def evaluate_responses(request: EvaluationRequest):
+async def evaluate_responses(request: EvaluationRequest, http_request: Request):
     """Evaluate GenAI tool responses and return results"""
     try:
-        # Initialize the judge with the specified provider
-        judge = GenAIBenchmarkJudge(provider=request.provider)
+        # Handle user-provided API key for session storage
+        api_key_to_use = None
+        if request.user_api_key:
+            # Store the API key in session (will be cleared when session ends)
+            http_request.session["user_gemini_key"] = request.user_api_key
+            api_key_to_use = request.user_api_key
+        elif request.provider == "gemini" and "user_gemini_key" in http_request.session:
+            # Use stored session key
+            api_key_to_use = http_request.session["user_gemini_key"]
+        
+        # Initialize the judge with the specified provider and API key
+        judge = GenAIBenchmarkJudge(provider=request.provider, api_key=api_key_to_use)
         
         # Run evaluation
         evaluation_results = judge.evaluate(request.question, request.responses)
         
+        # Check for Gemini-specific errors
         if "error" in evaluation_results:
-            raise HTTPException(status_code=500, detail=evaluation_results["error"])
+            if evaluation_results.get("provider") == "gemini" and evaluation_results.get("error_type") in ["quota_exceeded", "api_key_leaked"]:
+                # Return special response for Gemini quota/key issues
+                return JSONResponse(
+                    status_code=200,  # Don't return error status, handle in frontend
+                    content={
+                        "success": False,
+                        "gemini_limit_reached": True,
+                        "error": evaluation_results["error"],
+                        "error_type": evaluation_results["error_type"]
+                    }
+                )
+            else:
+                raise HTTPException(status_code=500, detail=evaluation_results["error"])
         
         # Categorize the question using the same judge
         try:
@@ -98,6 +126,13 @@ async def evaluate_responses(request: EvaluationRequest):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/clear-api-key")
+async def clear_api_key(request: Request):
+    """Clear user API key from session"""
+    if "user_gemini_key" in request.session:
+        del request.session["user_gemini_key"]
+    return {"success": True, "message": "API key cleared from session"}
 
 @app.get("/results", response_class=HTMLResponse)
 async def results_page(request: Request):

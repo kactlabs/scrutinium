@@ -41,11 +41,49 @@
         <div class="form-section">
             <h3>🔧 Evaluation Provider</h3>
             <div class="input-group">
-                <select id="provider" required>
+                <select id="provider" required onchange="toggleApiKeyInput()">
                     <option value="gemini">🟢 Gemini (Free)</option>
                     <option value="groq">🟡 Groq (Free)</option>
                     <option value="anthropic">🔵 Claude (Paid)</option>
                 </select>
+            </div>
+            
+            <!-- Gemini API Key Input (shown when Gemini is selected) -->
+            <div id="geminiKeySection" class="api-key-section">
+                <div class="input-group">
+                    <label for="geminiApiKey">🔑 Gemini API Key (Optional)</label>
+                    <input type="password" id="geminiApiKey" placeholder="Enter your Gemini API key (optional)">
+                    <small class="help-text">
+                        If you don't provide a key, we'll use our default key (limited usage). 
+                        <a href="https://ai.google.dev/" target="_blank">Get your free Gemini API key</a>
+                    </small>
+                </div>
+                <div class="key-status" id="keyStatus" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Gemini Limit Modal -->
+        <div id="geminiLimitModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>⚠️ Gemini Model Limit Reached</h3>
+                    <span class="close" onclick="closeGeminiModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p>Gemini model limit reached, visit us back next time.</p>
+                    <p>You can provide your own Gemini API key to continue using the service:</p>
+                    <div class="input-group">
+                        <label for="modalGeminiKey">🔑 Your Gemini API Key</label>
+                        <input type="password" id="modalGeminiKey" placeholder="Enter your Gemini API key">
+                        <small class="help-text">
+                            <a href="https://ai.google.dev/" target="_blank">Get your free Gemini API key here</a>
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="closeGeminiModal()" class="secondary-btn">Cancel</button>
+                    <button onclick="retryWithUserKey()" class="primary-btn">Retry with My Key</button>
+                </div>
             </div>
         </div>
 
@@ -173,9 +211,53 @@
             }
         }
 
+        function toggleApiKeyInput() {
+            const provider = document.getElementById('provider').value;
+            const geminiKeySection = document.getElementById('geminiKeySection');
+            
+            if (provider === 'gemini') {
+                geminiKeySection.style.display = 'block';
+            } else {
+                geminiKeySection.style.display = 'none';
+            }
+        }
+
+        function closeGeminiModal() {
+            document.getElementById('geminiLimitModal').style.display = 'none';
+        }
+
+        function retryWithUserKey() {
+            const userKey = document.getElementById('modalGeminiKey').value.trim();
+            if (!userKey) {
+                showStatus('Please enter your Gemini API key', 'error');
+                return;
+            }
+            
+            // Set the key in the main form and retry evaluation
+            document.getElementById('geminiApiKey').value = userKey;
+            closeGeminiModal();
+            evaluateResponses();
+        }
+
+        async function clearApiKey() {
+            try {
+                await fetch('/clear-api-key', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                document.getElementById('geminiApiKey').value = '';
+                showStatus('API key cleared from session', 'success');
+            } catch (error) {
+                console.error('Error clearing API key:', error);
+            }
+        }
+
         async function evaluateResponses() {
             const question = document.getElementById('question').value.trim();
             const provider = document.getElementById('provider').value;
+            const userApiKey = document.getElementById('geminiApiKey').value.trim();
             
             if (!question) {
                 showStatus('Please enter a question', 'error');
@@ -209,16 +291,23 @@
             document.getElementById('resultsSection').style.display = 'none';
 
             try {
+                const requestBody = {
+                    question: question,
+                    responses: responses,
+                    provider: provider
+                };
+
+                // Add user API key if provided
+                if (userApiKey) {
+                    requestBody.user_api_key = userApiKey;
+                }
+
                 const response = await fetch('/evaluate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        question: question,
-                        responses: responses,
-                        provider: provider
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const data = await response.json();
@@ -226,6 +315,9 @@
                 if (data.success) {
                     displayResults(data);
                     showStatus('Evaluation completed successfully!', 'success');
+                } else if (data.gemini_limit_reached) {
+                    // Show Gemini limit modal
+                    document.getElementById('geminiLimitModal').style.display = 'block';
                 } else {
                     throw new Error(data.detail || 'Evaluation failed');
                 }
@@ -385,7 +477,16 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
-            // Default response items are already in the HTML
+            // Initialize API key section visibility
+            toggleApiKeyInput();
+            
+            // Close modal when clicking outside of it
+            window.onclick = function(event) {
+                const modal = document.getElementById('geminiLimitModal');
+                if (event.target === modal) {
+                    closeGeminiModal();
+                }
+            }
         });
     </script>
 </body>

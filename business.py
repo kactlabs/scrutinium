@@ -106,6 +106,83 @@ Please evaluate these responses according to the metrics defined above.""")
         # Create the chain
         self.chain = self.prompt_template | self.llm | StrOutputParser()
     
+    def _handle_gemini_error(self, error):
+        """
+        Handle specific Gemini API errors and return user-friendly messages.
+        
+        Args:
+            error: The exception that occurred
+            
+        Returns:
+            Dictionary with error type and user message
+        """
+        error_str = str(error).lower()
+        
+        if "429" in error_str or "quota" in error_str or "rate" in error_str:
+            return {
+                "error_type": "quota_exceeded",
+                "user_message": "Gemini model limit reached, visit us back next time"
+            }
+        elif "403" in error_str or "leaked" in error_str:
+            return {
+                "error_type": "api_key_leaked", 
+                "user_message": "Gemini model limit reached, visit us back next time"
+            }
+        elif "401" in error_str or "unauthorized" in error_str:
+            return {
+                "error_type": "invalid_key",
+                "user_message": "Invalid API key provided"
+            }
+        else:
+            return {
+                "error_type": "general_error",
+                "user_message": f"Gemini API error: {str(error)}"
+            }
+        
+        # Define the evaluation prompt template
+        self.prompt_template = ChatPromptTemplate.from_messages([
+            ("system", """You are an expert judge evaluating GenAI tool responses across multiple metrics.
+
+Your task is to evaluate responses from various GenAI tools against these metrics:
+
+1. Truthfulness (Factual correctness, Internal consistency, Resistance to hallucination)
+2. Creativity (Novel framing or synthesis, Non-obvious insights, Original examples or analogies)
+3. Coherence & Reasoning Quality (Logical flow, Step-by-step reasoning, Absence of contradictions)
+4. Utility/Actionability (Practical usefulness, Clarity for decision-making, Transferability to real-world tasks)
+
+For each tool's response, provide:
+- A score out of 1000 for each metric (use full range 0-1000 for maximum precision, e.g., 862, 745, 923)
+- Brief reasoning for each score
+- An overall score (average of all metrics, also out of 1000)
+
+Format your response as valid JSON with this structure:
+{{
+    "evaluations": [
+        {{
+            "tool": "ToolName",
+            "truthfulness": {{"score": XXX, "reasoning": "..."}},
+            "creativity": {{"score": XXX, "reasoning": "..."}},
+            "coherence": {{"score": XXX, "reasoning": "..."}},
+            "utility": {{"score": XXX, "reasoning": "..."}},
+            "overall_score": XXX,
+            "notes": "..."
+        }}
+    ],
+    "winner": "ToolName",
+    "winner_reasoning": "...",
+    "ranking": ["Tool1", "Tool2", ...]
+}}"""),
+            ("human", """Question: {question}
+
+Tool Responses:
+{responses}
+
+Please evaluate these responses according to the metrics defined above.""")
+        ])
+        
+        # Create the chain
+        self.chain = self.prompt_template | self.llm | StrOutputParser()
+    
     def format_responses(self, responses: Dict[str, str]) -> str:
         """
         Format tool responses for the prompt.
@@ -135,26 +212,39 @@ Please evaluate these responses according to the metrics defined above.""")
         # Format responses
         formatted_responses = self.format_responses(responses)
         
-        # Run the evaluation
-        result = self.chain.invoke({
-            "question": question,
-            "responses": formatted_responses
-        })
-        
-        # Parse JSON response
         try:
-            # Some models wrap JSON in markdown code blocks
-            if "```json" in result:
-                result = result.split("```json")[1].split("```")[0].strip()
-            elif "```" in result:
-                result = result.split("```")[1].split("```")[0].strip()
+            # Run the evaluation
+            result = self.chain.invoke({
+                "question": question,
+                "responses": formatted_responses
+            })
             
-            evaluation_data = json.loads(result)
-            return evaluation_data
-        except json.JSONDecodeError as e:
-            print(f"Error parsing JSON response: {e}")
-            print(f"Raw response: {result}")
-            return {"error": "Failed to parse evaluation", "raw_response": result}
+            # Parse JSON response
+            try:
+                # Some models wrap JSON in markdown code blocks
+                if "```json" in result:
+                    result = result.split("```json")[1].split("```")[0].strip()
+                elif "```" in result:
+                    result = result.split("```")[1].split("```")[0].strip()
+                
+                evaluation_data = json.loads(result)
+                return evaluation_data
+            except json.JSONDecodeError as e:
+                print(f"Error parsing JSON response: {e}")
+                print(f"Raw response: {result}")
+                return {"error": "Failed to parse evaluation", "raw_response": result}
+                
+        except Exception as e:
+            # Handle Gemini-specific errors
+            if self.provider == "gemini":
+                error_info = self._handle_gemini_error(e)
+                return {
+                    "error": error_info["user_message"],
+                    "error_type": error_info["error_type"],
+                    "provider": "gemini"
+                }
+            else:
+                return {"error": f"Evaluation failed: {str(e)}", "provider": self.provider}
     
     def categorize_question(self, question: str) -> str:
         """
@@ -209,7 +299,12 @@ Respond with ONLY the category name, no explanations or additional text."""),
                 return "general"  # Fallback if empty
                 
         except Exception as e:
-            print(f"Error categorizing question: {e}")
+            # Handle Gemini-specific errors for categorization
+            if self.provider == "gemini":
+                error_info = self._handle_gemini_error(e)
+                print(f"Error categorizing question: {error_info['user_message']}")
+            else:
+                print(f"Error categorizing question: {e}")
             return "general"  # Default fallback
 
     def create_results_table(self, evaluation_data: Dict) -> pd.DataFrame:
