@@ -612,7 +612,7 @@ body.dark .response-item {
 
 .remove-btn {
     padding: 8px 12px;
-    background: #e74c3c;
+    background: #ebd5d2;
     color: white;
     border: none;
     border-radius: 6px;
@@ -623,7 +623,7 @@ body.dark .response-item {
 }
 
 .remove-btn:hover {
-    background: #c0392b;
+    background: #b5a3a1;
     transform: scale(1.05);
 }
 
