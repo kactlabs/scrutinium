@@ -1362,3 +1362,42 @@ body.dark .metric-details h3 {
 body.dark .metric-details em {
     color: #bdc3c7;
 }
+
+/* Judge's Answer Section */
+.judge-answer-section {
+    background: #e8f4fd;
+    border: 2px solid #3498db;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 30px;
+    border-left: 6px solid #3498db;
+}
+
+body.dark .judge-answer-section {
+    background: #1a2a3a;
+    border-color: #3498db;
+}
+
+.judge-answer-section h4 {
+    color: #2980b9;
+    margin-bottom: 16px;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+body.dark .judge-answer-section h4 {
+    color: #3498db;
+}
+
+.judge-answer-text {
+    color: #2c3e50;
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+}
+
+body.dark .judge-answer-text {
+    color: #e5e5e5;
+}

@@ -372,6 +372,17 @@
                 return;
             }
 
+            // Display judge's answer if available and enabled
+            let judgeAnswerHTML = '';
+            if (data.show_judge_answer && data.evaluation_results && data.evaluation_results.judge_answer) {
+                judgeAnswerHTML = `
+                    <div class="judge-answer-section">
+                        <h4>🤖 Judge's Answer</h4>
+                        <div class="judge-answer-text">${markdownToHtml(data.evaluation_results.judge_answer)}</div>
+                    </div>
+                `;
+            }
+
             // Sort table data by Overall Score in descending order
             const sortedTableData = data.table_data.sort((a, b) => {
                 return b['Overall Score'] - a['Overall Score'];
@@ -399,7 +410,7 @@
             }
 
             // Create results table
-            let tableHTML = shareHTML + `
+            let tableHTML = shareHTML + judgeAnswerHTML + `
                 <div class="results-table">
                     <table>
                         <thead>
@@ -443,16 +454,24 @@
 
             // Create detailed results (also sorted by overall score)
             const evaluation = data.evaluation_results;
-            const sortedEvaluations = evaluation.evaluations.sort((a, b) => {
-                return b.overall_score - a.overall_score;
+            console.log('Evaluation object:', evaluation);
+            console.log('Evaluations array:', evaluation.evaluations);
+            console.log('Ranking:', evaluation.ranking);
+            
+            const evaluations = evaluation.evaluations || [];
+            const sortedEvaluations = evaluations.sort((a, b) => {
+                return (b.overall_score || 0) - (a.overall_score || 0);
             });
 
             let detailedHTML = `
                 <div class="detailed-results">
                     <div class="winner-section">
-                        <h4>🏆 Winner: ${evaluation.winner}</h4>
-                        <div>${markdownToHtml(evaluation.winner_reasoning)}</div>
-                        <p><strong>Ranking:</strong> ${evaluation.ranking.join(' > ')}</p>
+                        <h4>🏆 Winner: ${evaluation.winner || 'Unknown'}</h4>
+                        <div>${markdownToHtml(evaluation.winner_reasoning || 'No reasoning provided')}</div>
+                        ${evaluation.ranking && evaluation.ranking.length > 0 ? 
+                            `<p><strong>Ranking:</strong> ${evaluation.ranking.join(' > ')}</p>` : 
+                            ''
+                        }
                     </div>
             `;
 
@@ -462,12 +481,12 @@
                 
                 detailedHTML += `
                     <div class="tool-details ${winnerClass}">
-                        <h4>${rankEmoji} ${eval.tool} (${parseFloat(eval.overall_score).toFixed(3)}/10)</h4>
+                        <h4>${rankEmoji} ${eval.tool || 'Unknown'} (${parseFloat(eval.overall_score || 0).toFixed(3)}/10)</h4>
                         <div class="metric-details">
-                            <p><strong>Truthfulness (${parseFloat(eval.truthfulness.score).toFixed(3)}/10):</strong> ${markdownToHtml(eval.truthfulness.reasoning)}</p>
-                            <p><strong>Creativity (${parseFloat(eval.creativity.score).toFixed(3)}/10):</strong> ${markdownToHtml(eval.creativity.reasoning)}</p>
-                            <p><strong>Coherence (${parseFloat(eval.coherence.score).toFixed(3)}/10):</strong> ${markdownToHtml(eval.coherence.reasoning)}</p>
-                            <p><strong>Utility (${parseFloat(eval.utility.score).toFixed(3)}/10):</strong> ${markdownToHtml(eval.utility.reasoning)}</p>
+                            <p><strong>Truthfulness (${parseFloat((eval.truthfulness && eval.truthfulness.score) || 0).toFixed(3)}/10):</strong> ${markdownToHtml((eval.truthfulness && eval.truthfulness.reasoning) || 'No reasoning provided')}</p>
+                            <p><strong>Creativity (${parseFloat((eval.creativity && eval.creativity.score) || 0).toFixed(3)}/10):</strong> ${markdownToHtml((eval.creativity && eval.creativity.reasoning) || 'No reasoning provided')}</p>
+                            <p><strong>Coherence (${parseFloat((eval.coherence && eval.coherence.score) || 0).toFixed(3)}/10):</strong> ${markdownToHtml((eval.coherence && eval.coherence.reasoning) || 'No reasoning provided')}</p>
+                            <p><strong>Utility (${parseFloat((eval.utility && eval.utility.score) || 0).toFixed(3)}/10):</strong> ${markdownToHtml((eval.utility && eval.utility.reasoning) || 'No reasoning provided')}</p>
                             ${eval.notes ? `<p><strong>Notes:</strong> ${markdownToHtml(eval.notes)}</p>` : ''}
                         </div>
                     </div>

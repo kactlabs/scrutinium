@@ -183,6 +183,14 @@
             <p class="question-text">{{ question }}</p>
         </div>
 
+        <!-- Judge's Answer Section -->
+        {% if show_judge_answer and result.judge_answer %}
+        <div class="judge-answer-section">
+            <h3>🤖 Judge's Answer</h3>
+            <div class="judge-answer-text">{{ result.judge_answer|markdown|safe }}</div>
+        </div>
+        {% endif %}
+
         <!-- Results Section - Matching Main Page Format -->
         <div class="visualization-section">
             <h3>📊 Evaluation Results</h3>

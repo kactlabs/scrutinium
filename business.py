@@ -121,6 +121,63 @@ Please evaluate these responses according to the metrics defined above.""")
         
         # Create the chain
         self.chain = self.prompt_template | self.llm | StrOutputParser()
+        
+        # Create enhanced prompt template that includes judge's own answer
+        self.enhanced_prompt_template = ChatPromptTemplate.from_messages([
+            ("system", """You are an expert judge evaluating GenAI tool responses across multiple metrics.
+
+Your task has two parts:
+1. First, provide your own answer to the question
+2. Then evaluate all responses (including your own) against these metrics:
+
+EVALUATION METRICS:
+1. Truthfulness (Factual correctness, Internal consistency, Resistance to hallucination)
+2. Creativity (Novel framing or synthesis, Non-obvious insights, Original examples or analogies)
+3. Coherence & Reasoning Quality (Logical flow, Step-by-step reasoning, Absence of contradictions)
+4. Utility/Actionability (Practical usefulness, Clarity for decision-making, Transferability to real-world tasks)
+
+For each response (including your own), provide:
+- A score out of 1000 for each metric (use full range 0-1000 for maximum precision, e.g., 862, 745, 923)
+- Brief reasoning for each score
+- An overall score (average of all metrics, also out of 1000)
+
+Format your response as valid JSON with this structure:
+{{
+    "judge_answer": "Your comprehensive answer to the question...",
+    "evaluations": [
+        {{
+            "tool": "ToolName",
+            "truthfulness": {{"score": XXX, "reasoning": "..."}},
+            "creativity": {{"score": XXX, "reasoning": "..."}},
+            "coherence": {{"score": XXX, "reasoning": "..."}},
+            "utility": {{"score": XXX, "reasoning": "..."}},
+            "overall_score": XXX,
+            "notes": "..."
+        }},
+        {{
+            "tool": "Judge",
+            "truthfulness": {{"score": XXX, "reasoning": "..."}},
+            "creativity": {{"score": XXX, "reasoning": "..."}},
+            "coherence": {{"score": XXX, "reasoning": "..."}},
+            "utility": {{"score": XXX, "reasoning": "..."}},
+            "overall_score": XXX,
+            "notes": "..."
+        }}
+    ],
+    "winner": "ToolName",
+    "winner_reasoning": "...",
+    "ranking": ["Tool1", "Tool2", "Judge", ...]
+}}"""),
+            ("human", """Question: {question}
+
+Tool Responses:
+{responses}
+
+Please first provide your own comprehensive answer to this question, then evaluate all responses (including your own) according to the metrics defined above.""")
+        ])
+        
+        # Create enhanced chain that includes judge's own answer
+        self.enhanced_chain = self.enhanced_prompt_template | self.llm | StrOutputParser()
     
     def get_judge_name(self) -> str:
         """
@@ -240,6 +297,60 @@ Please evaluate these responses according to the metrics defined above.""")
         try:
             # Run the evaluation
             result = self.chain.invoke({
+                "question": question,
+                "responses": formatted_responses
+            })
+            
+            # Parse JSON response
+            try:
+                # Some models wrap JSON in markdown code blocks
+                if "```json" in result:
+                    result = result.split("```json")[1].split("```")[0].strip()
+                elif "```" in result:
+                    result = result.split("```")[1].split("```")[0].strip()
+                
+                evaluation_data = json.loads(result)
+                return evaluation_data
+            except json.JSONDecodeError as e:
+                print(f"Error parsing JSON response: {e}")
+                print(f"Raw response: {result}")
+                return {"error": "Failed to parse evaluation", "raw_response": result}
+                
+        except Exception as e:
+            # Handle provider-specific errors
+            if self.provider == "gemini":
+                error_info = self._handle_gemini_error(e)
+                return {
+                    "error": error_info["user_message"],
+                    "error_type": error_info["error_type"],
+                    "provider": "gemini"
+                }
+            elif self.provider == "ollama":
+                return {
+                    "error": f"Ollama error: {str(e)}. Make sure Ollama is running locally.",
+                    "error_type": "ollama_error",
+                    "provider": "ollama"
+                }
+            else:
+                return {"error": f"Evaluation failed: {str(e)}", "provider": self.provider}
+    
+    def evaluate_with_judge_answer(self, question: str, responses: Dict[str, str]) -> Dict:
+        """
+        Evaluate all tool responses including the judge's own answer to the question.
+        
+        Args:
+            question: The question that was asked
+            responses: Dictionary mapping tool names to their responses
+            
+        Returns:
+            Dictionary containing evaluation results including judge's answer
+        """
+        # Format responses
+        formatted_responses = self.format_responses(responses)
+        
+        try:
+            # Run the enhanced evaluation that includes judge's own answer
+            result = self.enhanced_chain.invoke({
                 "question": question,
                 "responses": formatted_responses
             })

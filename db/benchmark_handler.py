@@ -28,6 +28,7 @@ async def create_benchmark_result(
     mistral_answer: str = "",
     claude_answer: str = "",
     grok_answer: str = "",
+    judge_answer: str = "",  # Add judge's own answer
     truthfulness: Dict = None,
     creativity: Dict = None,
     coherence: Dict = None,
@@ -69,6 +70,7 @@ async def create_benchmark_result(
         "judge": judge,
         "question": question,
         "category": category,
+        "judge_answer": judge_answer,  # Add judge's answer to document
         "chatgpt_answer": chatgpt_answer,
         "kimi_answer": kimi_answer,
         "deepseek_answer": deepseek_answer,
@@ -110,6 +112,9 @@ async def save_evaluation_results(
     claude_answer = responses.get("Claude", "")
     grok_answer = responses.get("Grok", "")
     
+    # Extract judge's answer if available
+    judge_answer = evaluation_data.get("judge_answer", "")
+    
     # Process evaluation data to create score dictionaries
     truthfulness_scores = {}
     creativity_scores = {}
@@ -145,6 +150,7 @@ async def save_evaluation_results(
         judge=judge,
         question=question,
         category=category,
+        judge_answer=judge_answer,  # Pass judge's answer
         chatgpt_answer=chatgpt_answer,
         kimi_answer=kimi_answer,
         deepseek_answer=deepseek_answer,

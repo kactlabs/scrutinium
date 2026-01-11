@@ -81,8 +81,12 @@ async def evaluate_responses(request: EvaluationRequest, http_request: Request):
         # Initialize the judge with the specified provider and API key
         judge = GenAIBenchmarkJudge(provider=provider_to_use, api_key=api_key_to_use)
         
-        # Run evaluation
-        evaluation_results = judge.evaluate(request.question, request.responses)
+        # Run evaluation - with or without judge's answer based on environment setting
+        show_judge_answer = int(os.getenv("SHOW_JUDGE_ANSWER", "0")) == 1
+        if show_judge_answer:
+            evaluation_results = judge.evaluate_with_judge_answer(request.question, request.responses)
+        else:
+            evaluation_results = judge.evaluate(request.question, request.responses)
         
         # Check for Gemini-specific errors
         if "error" in evaluation_results:
@@ -143,7 +147,8 @@ async def evaluate_responses(request: EvaluationRequest, http_request: Request):
         return {
             "success": True,
             "evaluation_results": evaluation_results,
-            "table_data": table_data
+            "table_data": table_data,
+            "show_judge_answer": int(os.getenv("SHOW_JUDGE_ANSWER", "0")) == 1
         }
         
     except Exception as e:
@@ -353,7 +358,8 @@ async def share_results(request: Request, share_uuid: str):
             "table_data": table_data,
             "judge": result.get("judge", ""),
             "created_at": result.get("created_at", ""),
-            "share_uuid": share_uuid
+            "share_uuid": share_uuid,
+            "show_judge_answer": int(os.getenv("SHOW_JUDGE_ANSWER", "0")) == 1
         })
         
     except HTTPException:
