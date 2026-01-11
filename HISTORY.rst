@@ -3,6 +3,65 @@
 History
 -------
 
+1.3.0 (2025-01-11)
+---------------------
+
+**Judge Answer Generation and Display Control**
+
+* **NEW**: Judge Answer Generation Feature
+  
+  - AI judge now generates its own comprehensive answer to questions
+  - Judge's answer displayed for reference and comparison purposes
+  - Enhanced evaluation prompt includes judge's response generation
+  - Judge answer excluded from scoring to maintain evaluation objectivity
+
+* **NEW**: Environment-Based Display Control
+  
+  - Added ``SHOW_JUDGE_ANSWER`` environment variable (0=hide, 1=show)
+  - Configurable judge answer display in both main results and share pages
+  - Performance optimization: skip judge answer generation when disabled
+  - Backward compatibility with default setting (disabled)
+
+* **ENHANCED**: Database Schema Updates
+  
+  - Added ``judge_answer`` field to MongoDB document structure
+  - Updated ``save_evaluation_results()`` to store judge's comprehensive answers
+  - Enhanced share page data retrieval to include judge responses
+  - Graceful handling of legacy records without judge answers
+
+* **IMPROVED**: Markdown Rendering and Content Processing
+  
+  - Added Python ``markdown`` library with safe extensions (nl2br, fenced_code, tables)
+  - Server-side markdown rendering for share pages with ``|markdown|safe`` filter
+  - Client-side JavaScript markdown converter for real-time results
+  - Automatic image reference removal from ChatGPT responses (``![Image](url)`` patterns)
+
+* **ENHANCED**: User Experience Improvements
+  
+  - Judge's answer displayed in dedicated section with proper styling
+  - Conditional display based on environment configuration
+  - Informative messages for legacy evaluations without judge answers
+  - Responsive design for judge answer sections
+
+* **TECHNICAL**: Robust Environment Variable Handling
+  
+  - Multiple format support: ``1``, ``true``, ``yes`` for enabling feature
+  - Fallback parsing with string trimming and case-insensitive matching
+  - Debug endpoints for environment variable verification
+  - Comprehensive logging for troubleshooting
+
+* **FIXED**: Session Middleware Dependencies
+  
+  - Added ``itsdangerous>=2.0.0`` dependency for Vercel deployment
+  - Resolved ModuleNotFoundError in production environments
+  - Proper session management for user API key storage
+
+* **UPDATED**: Configuration Documentation
+  
+  - Updated ``.env.sample`` with ``SHOW_JUDGE_ANSWER`` setting
+  - Clear documentation of judge answer control mechanism
+  - Environment variable setup instructions for deployment platforms
+
 1.2.0 (2025-01-11)
 ---------------------
 

@@ -127,8 +127,8 @@ Please evaluate these responses according to the metrics defined above.""")
             ("system", """You are an expert judge evaluating GenAI tool responses across multiple metrics.
 
 Your task has two parts:
-1. First, provide your own answer to the question
-2. Then evaluate all responses (including your own) against these metrics:
+1. First, provide your own answer to the question for reference only
+2. Then evaluate only the provided tool responses (do NOT evaluate your own answer)
 
 EVALUATION METRICS:
 1. Truthfulness (Factual correctness, Internal consistency, Resistance to hallucination)
@@ -136,26 +136,19 @@ EVALUATION METRICS:
 3. Coherence & Reasoning Quality (Logical flow, Step-by-step reasoning, Absence of contradictions)
 4. Utility/Actionability (Practical usefulness, Clarity for decision-making, Transferability to real-world tasks)
 
-For each response (including your own), provide:
+For each tool response (excluding your own), provide:
 - A score out of 1000 for each metric (use full range 0-1000 for maximum precision, e.g., 862, 745, 923)
 - Brief reasoning for each score
 - An overall score (average of all metrics, also out of 1000)
 
+IMPORTANT: Do NOT include yourself in the evaluations or ranking. Only evaluate the provided tool responses.
+
 Format your response as valid JSON with this structure:
 {{
-    "judge_answer": "Your comprehensive answer to the question...",
+    "judge_answer": "Your comprehensive answer to the question for reference only...",
     "evaluations": [
         {{
             "tool": "ToolName",
-            "truthfulness": {{"score": XXX, "reasoning": "..."}},
-            "creativity": {{"score": XXX, "reasoning": "..."}},
-            "coherence": {{"score": XXX, "reasoning": "..."}},
-            "utility": {{"score": XXX, "reasoning": "..."}},
-            "overall_score": XXX,
-            "notes": "..."
-        }},
-        {{
-            "tool": "Judge",
             "truthfulness": {{"score": XXX, "reasoning": "..."}},
             "creativity": {{"score": XXX, "reasoning": "..."}},
             "coherence": {{"score": XXX, "reasoning": "..."}},
@@ -166,14 +159,14 @@ Format your response as valid JSON with this structure:
     ],
     "winner": "ToolName",
     "winner_reasoning": "...",
-    "ranking": ["Tool1", "Tool2", "Judge", ...]
+    "ranking": ["Tool1", "Tool2", ...]
 }}"""),
             ("human", """Question: {question}
 
 Tool Responses:
 {responses}
 
-Please first provide your own comprehensive answer to this question, then evaluate all responses (including your own) according to the metrics defined above.""")
+Please first provide your own comprehensive answer to this question for reference, then evaluate only the provided tool responses (do not evaluate your own answer) according to the metrics defined above.""")
         ])
         
         # Create enhanced chain that includes judge's own answer

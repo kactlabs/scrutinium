@@ -82,7 +82,13 @@ async def evaluate_responses(request: EvaluationRequest, http_request: Request):
         judge = GenAIBenchmarkJudge(provider=provider_to_use, api_key=api_key_to_use)
         
         # Run evaluation - with or without judge's answer based on environment setting
-        show_judge_answer = int(os.getenv("SHOW_JUDGE_ANSWER", "0")) == 1
+        show_judge_answer_env = os.getenv("SHOW_JUDGE_ANSWER", "0").strip()
+        show_judge_answer = (
+            show_judge_answer_env == '1' or 
+            show_judge_answer_env.lower() == 'true' or 
+            show_judge_answer_env.lower() == 'yes'
+        )
+        
         if show_judge_answer:
             evaluation_results = judge.evaluate_with_judge_answer(request.question, request.responses)
         else:
@@ -148,11 +154,21 @@ async def evaluate_responses(request: EvaluationRequest, http_request: Request):
             "success": True,
             "evaluation_results": evaluation_results,
             "table_data": table_data,
-            "show_judge_answer": int(os.getenv("SHOW_JUDGE_ANSWER", "0")) == 1
+            "show_judge_answer": show_judge_answer
         }
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/debug/env")
+async def debug_env():
+    """Debug endpoint to check environment variables"""
+    return {
+        "SHOW_JUDGE_ANSWER": os.getenv("SHOW_JUDGE_ANSWER", "NOT_SET"),
+        "SHOW_JUDGE_ANSWER_parsed": int(os.getenv("SHOW_JUDGE_ANSWER", "0")) == 1,
+        "DEFAULT_PROVIDER": os.getenv("DEFAULT_PROVIDER", "NOT_SET"),
+        "OLLAMA_MODEL": os.getenv("OLLAMA_MODEL", "NOT_SET")
+    }
 
 @app.post("/clear-api-key")
 async def clear_api_key(request: Request):
@@ -273,6 +289,17 @@ async def share_results(request: Request, share_uuid: str):
         if not result:
             raise HTTPException(status_code=404, detail="Shared result not found")
         
+        # Debug: Check if judge_answer exists
+        judge_answer_exists = bool(result.get('judge_answer', '').strip())
+        show_judge_answer_setting = int(os.getenv('SHOW_JUDGE_ANSWER', '0')) == 1
+        
+        print(f"DEBUG: Judge answer exists: {judge_answer_exists}")
+        print(f"DEBUG: Judge answer content: '{result.get('judge_answer', 'NOT_FOUND')[:100]}...'")
+        print(f"DEBUG: SHOW_JUDGE_ANSWER env var: '{os.getenv('SHOW_JUDGE_ANSWER', 'NOT_SET')}'")
+        print(f"DEBUG: Show judge answer setting: {show_judge_answer_setting}")
+        print(f"DEBUG: Both conditions met: {show_judge_answer_setting and judge_answer_exists}")
+        print(f"DEBUG: Result keys: {list(result.keys())}")
+        
         # Prepare data for template
         answers = {
             "ChatGPT": result.get("chatgpt_answer", ""),
@@ -348,6 +375,17 @@ async def share_results(request: Request, share_uuid: str):
         question = result.get("question", "")
         title = f"Scrutinium - {question}" if question else "Scrutinium - Shared Results"
         
+        # Get show_judge_answer setting with multiple fallback checks
+        show_judge_answer_env = os.getenv('SHOW_JUDGE_ANSWER', '0').strip()
+        show_judge_answer = (
+            show_judge_answer_env == '1' or 
+            show_judge_answer_env.lower() == 'true' or 
+            show_judge_answer_env.lower() == 'yes'
+        )
+        
+        print(f"DEBUG: SHOW_JUDGE_ANSWER raw: '{show_judge_answer_env}'")
+        print(f"DEBUG: SHOW_JUDGE_ANSWER parsed: {show_judge_answer}")
+        
         return templates.TemplateResponse("share.html", {
             "request": request,
             "title": title,
@@ -359,7 +397,7 @@ async def share_results(request: Request, share_uuid: str):
             "judge": result.get("judge", ""),
             "created_at": result.get("created_at", ""),
             "share_uuid": share_uuid,
-            "show_judge_answer": int(os.getenv("SHOW_JUDGE_ANSWER", "0")) == 1
+            "show_judge_answer": show_judge_answer
         })
         
     except HTTPException:
