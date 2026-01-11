@@ -42,6 +42,7 @@
             <h3>🔧 Evaluation Provider</h3>
             <div class="input-group">
                 <select id="provider" required onchange="toggleApiKeyInput()">
+                    <option value="ollama">🟠 Ollama (Local)</option>
                     <option value="gemini">🟢 Gemini (Free)</option>
                     <option value="groq">🟡 Groq (Free)</option>
                     <option value="anthropic">🔵 Claude (Paid)</option>
@@ -330,10 +331,46 @@
             }
         }
 
+        // Simple markdown to HTML converter for basic formatting
+        function markdownToHtml(text) {
+            if (!text) return '';
+            
+            return text
+                // Remove image references like ![Image](url) or ![alt text](url)
+                .replace(/!\[.*?\]\(.*?\)/g, '')
+                // Bold text **text** or __text__
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/__(.*?)__/g, '<strong>$1</strong>')
+                // Italic text *text* or _text_
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/_(.*?)_/g, '<em>$1</em>')
+                // Code blocks ```code```
+                .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+                // Inline code `code`
+                .replace(/`(.*?)`/g, '<code>$1</code>')
+                // Line breaks
+                .replace(/\n/g, '<br>')
+                // Lists (basic support)
+                .replace(/^\* (.*$)/gm, '<li>$1</li>')
+                .replace(/^- (.*$)/gm, '<li>$1</li>')
+                // Wrap consecutive <li> elements in <ul>
+                .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+                // Headers
+                .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                .replace(/^# (.*$)/gm, '<h1>$1</h1>');
+        }
+
         function displayResults(data) {
             const resultsSection = document.getElementById('resultsSection');
             const resultsTable = document.getElementById('resultsTable');
             const detailedResults = document.getElementById('detailedResults');
+
+            // Check if table_data exists and has content
+            if (!data.table_data || data.table_data.length === 0) {
+                showStatus('No results data received', 'error');
+                return;
+            }
 
             // Sort table data by Overall Score in descending order
             const sortedTableData = data.table_data.sort((a, b) => {
@@ -414,7 +451,7 @@
                 <div class="detailed-results">
                     <div class="winner-section">
                         <h4>🏆 Winner: ${evaluation.winner}</h4>
-                        <p>${evaluation.winner_reasoning}</p>
+                        <div>${markdownToHtml(evaluation.winner_reasoning)}</div>
                         <p><strong>Ranking:</strong> ${evaluation.ranking.join(' > ')}</p>
                     </div>
             `;
@@ -427,11 +464,11 @@
                     <div class="tool-details ${winnerClass}">
                         <h4>${rankEmoji} ${eval.tool} (${parseFloat(eval.overall_score).toFixed(3)}/10)</h4>
                         <div class="metric-details">
-                            <p><strong>Truthfulness (${parseFloat(eval.truthfulness.score).toFixed(3)}/10):</strong> ${eval.truthfulness.reasoning}</p>
-                            <p><strong>Creativity (${parseFloat(eval.creativity.score).toFixed(3)}/10):</strong> ${eval.creativity.reasoning}</p>
-                            <p><strong>Coherence (${parseFloat(eval.coherence.score).toFixed(3)}/10):</strong> ${eval.coherence.reasoning}</p>
-                            <p><strong>Utility (${parseFloat(eval.utility.score).toFixed(3)}/10):</strong> ${eval.utility.reasoning}</p>
-                            ${eval.notes ? `<p><strong>Notes:</strong> ${eval.notes}</p>` : ''}
+                            <p><strong>Truthfulness (${parseFloat(eval.truthfulness.score).toFixed(3)}/10):</strong> ${markdownToHtml(eval.truthfulness.reasoning)}</p>
+                            <p><strong>Creativity (${parseFloat(eval.creativity.score).toFixed(3)}/10):</strong> ${markdownToHtml(eval.creativity.reasoning)}</p>
+                            <p><strong>Coherence (${parseFloat(eval.coherence.score).toFixed(3)}/10):</strong> ${markdownToHtml(eval.coherence.reasoning)}</p>
+                            <p><strong>Utility (${parseFloat(eval.utility.score).toFixed(3)}/10):</strong> ${markdownToHtml(eval.utility.reasoning)}</p>
+                            ${eval.notes ? `<p><strong>Notes:</strong> ${markdownToHtml(eval.notes)}</p>` : ''}
                         </div>
                     </div>
                 `;
@@ -445,23 +482,70 @@
 
         function copyShareUrl() {
             const shareUrlInput = document.getElementById('shareUrl');
-            shareUrlInput.select();
-            shareUrlInput.setSelectionRange(0, 99999); // For mobile devices
+            const url = shareUrlInput.value;
+            console.log('Attempting to copy URL:', url);
             
-            navigator.clipboard.writeText(shareUrlInput.value).then(function() {
-                const copyBtn = document.querySelector('.copy-btn');
-                const originalText = copyBtn.textContent;
-                copyBtn.textContent = '✅ Copied!';
-                copyBtn.style.backgroundColor = '#28a745';
-                
-                setTimeout(function() {
-                    copyBtn.textContent = originalText;
-                    copyBtn.style.backgroundColor = '';
-                }, 2000);
-            }).catch(function(err) {
-                console.error('Could not copy text: ', err);
-                alert('Failed to copy link. Please copy manually.');
-            });
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url).then(function() {
+                    console.log('Clipboard API success');
+                    showCopySuccess();
+                }).catch(function(err) {
+                    console.error('Clipboard API failed:', err);
+                    fallbackCopyTextToClipboard(url);
+                });
+            } else {
+                console.log('Clipboard API not available, using fallback');
+                fallbackCopyTextToClipboard(url);
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            
+            // Avoid scrolling to bottom
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                console.log('Fallback copy result:', successful);
+                if (successful) {
+                    showCopySuccess();
+                } else {
+                    showCopyError(text);
+                }
+            } catch (err) {
+                console.error('Fallback copy failed:', err);
+                showCopyError(text);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function showCopySuccess() {
+            const copyBtn = document.querySelector('.copy-btn');
+            const originalText = copyBtn.textContent;
+            const originalBackground = copyBtn.style.backgroundColor || '';
+            
+            copyBtn.textContent = '✅ Copied!';
+            copyBtn.style.backgroundColor = '#27ae60';
+            
+            setTimeout(function() {
+                copyBtn.textContent = originalText;
+                copyBtn.style.backgroundColor = originalBackground;
+            }, 2000);
+        }
+
+        function showCopyError(url) {
+            alert('Failed to copy automatically. Please copy this link manually:\n\n' + url);
         }
 
         function showStatus(message, type) {

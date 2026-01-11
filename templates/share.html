@@ -223,7 +223,7 @@
             {% if result.winner %}
             <div class="winner-section">
                 <h4>🏆 Winner: {{ result.winner }}</h4>
-                <p>{{ result.winner_reasoning }}</p>
+                <div>{{ result.winner_reasoning|markdown|safe }}</div>
                 {% if result.ranking %}
                 <p><strong>Ranking:</strong> {{ result.ranking|join(' > ') }}</p>
                 {% endif %}
@@ -240,17 +240,17 @@
                 <div class="tool-details {{ winner_class }}">
                     <h4>{{ rank_emoji }} {{ row.tool }} ({{ "%.3f"|format(row.overall_score) }}/10)</h4>
                     <div class="metric-details">
-                        <p><strong>Truthfulness ({{ "%.3f"|format(row.truthfulness) }}/10):</strong> {{ metrics.truthfulness.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
-                        <p><strong>Creativity ({{ "%.3f"|format(row.creativity) }}/10):</strong> {{ metrics.creativity.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
-                        <p><strong>Coherence ({{ "%.3f"|format(row.coherence) }}/10):</strong> {{ metrics.coherence.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
-                        <p><strong>Utility ({{ "%.3f"|format(row.utility) }}/10):</strong> {{ metrics.utility.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
+                        <p><strong>Truthfulness ({{ "%.3f"|format(row.truthfulness) }}/10):</strong> {{ metrics.truthfulness.details.get(tool_lower, 'Detailed reasoning not available')|markdown|safe }}</p>
+                        <p><strong>Creativity ({{ "%.3f"|format(row.creativity) }}/10):</strong> {{ metrics.creativity.details.get(tool_lower, 'Detailed reasoning not available')|markdown|safe }}</p>
+                        <p><strong>Coherence ({{ "%.3f"|format(row.coherence) }}/10):</strong> {{ metrics.coherence.details.get(tool_lower, 'Detailed reasoning not available')|markdown|safe }}</p>
+                        <p><strong>Utility ({{ "%.3f"|format(row.utility) }}/10):</strong> {{ metrics.utility.details.get(tool_lower, 'Detailed reasoning not available')|markdown|safe }}</p>
                     </div>
                     
                     <!-- Tool Response -->
                     {% if answers.get(row.tool) %}
                     <div class="tool-response-text">
                         <strong>Response:</strong><br>
-                        {{ answers[row.tool] }}
+                        {{ answers[row.tool]|markdown|safe }}
                     </div>
                     {% endif %}
                 </div>

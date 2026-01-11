@@ -4,6 +4,7 @@ import os
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
+from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 import pandas as pd
@@ -21,14 +22,18 @@ class GenAIBenchmarkJudge:
     A judge system for evaluating GenAI tool responses using Claude via LangChain.
     """
     
-    def __init__(self, api_key: str = None, provider: str = "anthropic"):
+    def __init__(self, api_key: str = None, provider: str = None):
         """
         Initialize the judge with specified model provider.
         
         Args:
-            api_key: API key for the chosen provider
-            provider: Model provider ("anthropic", "gemini", or "groq")
+            api_key: API key for the chosen provider (not needed for Ollama)
+            provider: Model provider ("anthropic", "gemini", "groq", or "ollama")
         """
+        # Get default provider from environment if not specified
+        if provider is None:
+            provider = os.getenv("DEFAULT_PROVIDER", "gemini")
+        
         self.provider = provider.lower()
         
         if self.provider == "anthropic":
@@ -59,8 +64,19 @@ class GenAIBenchmarkJudge:
                 temperature=0.3,
                 max_tokens=4000
             )
+        elif self.provider == "ollama":
+            # Ollama runs locally, no API key needed
+            model_name = os.getenv("OLLAMA_MODEL", "mistral:latest")
+            base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+            
+            self.model_name = model_name  # Store model name for reference
+            self.llm = ChatOllama(
+                model=model_name,
+                temperature=0.3,
+                base_url=base_url
+            )
         else:
-            raise ValueError(f"Unsupported provider: {provider}. Choose from 'anthropic', 'gemini', or 'groq'")
+            raise ValueError(f"Unsupported provider: {provider}. Choose from 'anthropic', 'gemini', 'groq', or 'ollama'")
         
         # Define the evaluation prompt template
         self.prompt_template = ChatPromptTemplate.from_messages([
@@ -105,6 +121,15 @@ Please evaluate these responses according to the metrics defined above.""")
         
         # Create the chain
         self.chain = self.prompt_template | self.llm | StrOutputParser()
+    
+    def get_judge_name(self) -> str:
+        """
+        Get the judge name for database storage.
+        For Ollama, returns the specific model name, otherwise returns the provider name.
+        """
+        if self.provider == "ollama":
+            return getattr(self, 'model_name', os.getenv("OLLAMA_MODEL", "ollama"))
+        return self.provider
     
     def _handle_gemini_error(self, error):
         """
@@ -235,13 +260,19 @@ Please evaluate these responses according to the metrics defined above.""")
                 return {"error": "Failed to parse evaluation", "raw_response": result}
                 
         except Exception as e:
-            # Handle Gemini-specific errors
+            # Handle provider-specific errors
             if self.provider == "gemini":
                 error_info = self._handle_gemini_error(e)
                 return {
                     "error": error_info["user_message"],
                     "error_type": error_info["error_type"],
                     "provider": "gemini"
+                }
+            elif self.provider == "ollama":
+                return {
+                    "error": f"Ollama error: {str(e)}. Make sure Ollama is running locally.",
+                    "error_type": "ollama_error",
+                    "provider": "ollama"
                 }
             else:
                 return {"error": f"Evaluation failed: {str(e)}", "provider": self.provider}
@@ -299,10 +330,12 @@ Respond with ONLY the category name, no explanations or additional text."""),
                 return "general"  # Fallback if empty
                 
         except Exception as e:
-            # Handle Gemini-specific errors for categorization
+            # Handle provider-specific errors for categorization
             if self.provider == "gemini":
                 error_info = self._handle_gemini_error(e)
                 print(f"Error categorizing question: {error_info['user_message']}")
+            elif self.provider == "ollama":
+                print(f"Error categorizing question: Ollama error - {str(e)}")
             else:
                 print(f"Error categorizing question: {e}")
             return "general"  # Default fallback
@@ -391,21 +424,25 @@ Respond with ONLY the category name, no explanations or additional text."""),
 
 # Usage with free provider
 def main():
-    # Example 1: Use Gemini (Free with API key)
-    print("Using Gemini for evaluation...")
-    judge = GenAIBenchmarkJudge(
-        api_key=os.getenv("GEMINI_API_KEY"),  # Set your GEMINI_API_KEY environment variable
-        provider="gemini"
-    )
+    # Example 1: Use Ollama (Local, Free)
+    print("Using Ollama for evaluation...")
+    judge = GenAIBenchmarkJudge(provider="ollama")
     
-    # Example 2: Use Groq (Free with API key) - uncomment to use
+    # Example 2: Use Gemini (Free with API key) - uncomment to use
+    # print("Using Gemini for evaluation...")
+    # judge = GenAIBenchmarkJudge(
+    #     api_key=os.getenv("GEMINI_API_KEY"),  # Set your GEMINI_API_KEY environment variable
+    #     provider="gemini"
+    # )
+    
+    # Example 3: Use Groq (Free with API key) - uncomment to use
     # print("Using Groq for evaluation...")
     # judge = GenAIBenchmarkJudge(
     #     api_key=os.getenv("GROQ_API_KEY"),  # Set your GROQ_API_KEY environment variable
     #     provider="groq"
     # )
     
-    # Example 3: Use Anthropic Claude (requires paid API key) - uncomment to use
+    # Example 4: Use Anthropic Claude (requires paid API key) - uncomment to use
     # print("Using Claude for evaluation...")
     # judge = GenAIBenchmarkJudge(
     #     api_key=os.getenv("ANTHROPIC_API_KEY"),  # Set your ANTHROPIC_API_KEY environment variable

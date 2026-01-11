@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Dict, Optional
 import uvicorn
 import os
+import markdown
 from dotenv import load_dotenv
 from datetime import datetime
 from business import GenAIBenchmarkJudge
@@ -27,13 +28,29 @@ app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET_KEY",
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+# Add markdown filter to Jinja2 environment
+def markdown_filter(text):
+    """Convert markdown text to HTML, removing image references"""
+    if not text:
+        return ""
+    
+    # Remove image references like ![Image](url) or ![alt text](url)
+    import re
+    text = re.sub(r'!\[.*?\]\(.*?\)', '', text)
+    
+    # Configure markdown with safe extensions
+    md = markdown.Markdown(extensions=['nl2br', 'fenced_code', 'tables'])
+    return md.convert(str(text))
+
+templates.env.filters['markdown'] = markdown_filter
+
 # Include routers
 app.include_router(benchmark_router)
 
 class EvaluationRequest(BaseModel):
     question: str
     responses: Dict[str, str]
-    provider: Optional[str] = "gemini"
+    provider: Optional[str] = None  # Will use DEFAULT_PROVIDER from env if not specified
     user_api_key: Optional[str] = None
 
 @app.get("/", response_class=HTMLResponse)
@@ -51,16 +68,18 @@ async def evaluate_responses(request: EvaluationRequest, http_request: Request):
     try:
         # Handle user-provided API key for session storage
         api_key_to_use = None
+        provider_to_use = request.provider or os.getenv("DEFAULT_PROVIDER", "gemini")
+        
         if request.user_api_key:
             # Store the API key in session (will be cleared when session ends)
             http_request.session["user_gemini_key"] = request.user_api_key
             api_key_to_use = request.user_api_key
-        elif request.provider == "gemini" and "user_gemini_key" in http_request.session:
+        elif provider_to_use == "gemini" and "user_gemini_key" in http_request.session:
             # Use stored session key
             api_key_to_use = http_request.session["user_gemini_key"]
         
         # Initialize the judge with the specified provider and API key
-        judge = GenAIBenchmarkJudge(provider=request.provider, api_key=api_key_to_use)
+        judge = GenAIBenchmarkJudge(provider=provider_to_use, api_key=api_key_to_use)
         
         # Run evaluation
         evaluation_results = judge.evaluate(request.question, request.responses)
@@ -91,8 +110,11 @@ async def evaluate_responses(request: EvaluationRequest, http_request: Request):
         
         # Save results to MongoDB
         try:
+            # Use the judge's get_judge_name method to get the appropriate name for DB storage
+            judge_name = judge.get_judge_name()
+            
             scid, share_uuid = await benchmark_handler.save_evaluation_results(
-                judge=request.provider,
+                judge=judge_name,
                 question=request.question,
                 responses=request.responses,
                 evaluation_data=evaluation_results,

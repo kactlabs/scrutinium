@@ -3,6 +3,67 @@
 History
 -------
 
+1.2.0 (2025-01-11)
+---------------------
+
+**Enhanced Error Handling and Local AI Support**
+
+* **NEW**: Ollama Local AI Integration
+  
+  - Added support for local Ollama models (mistral:latest by default)
+  - No API keys required for local processing
+  - Configurable model and base URL via environment variables
+  - Added ``langchain_ollama`` dependency for local AI support
+
+* **NEW**: Gemini API Error Handling & User Key Support
+  
+  - Intelligent error handling for Gemini quota limits (429) and leaked keys (403)
+  - User-friendly error messages: "Gemini model limit reached, visit us back next time"
+  - Modal dialog for users to provide their own Gemini API keys
+  - Session-based API key storage (cleared when tab/window closes)
+  - Automatic retry functionality with user-provided keys
+
+* **NEW**: Default Provider Configuration
+  
+  - Added ``DEFAULT_PROVIDER`` environment variable support
+  - Ollama set as default provider for local-first approach
+  - Fallback to Gemini if no provider specified and no default set
+  - Provider selection now respects environment configuration
+
+* **ENHANCED**: Session Management
+  
+  - Added FastAPI SessionMiddleware for secure key storage
+  - Session-based user API key management for Gemini
+  - ``POST /clear-api-key`` endpoint for manual key clearing
+  - Automatic session cleanup on browser close
+
+* **IMPROVED**: User Interface
+  
+  - Added Ollama option to provider dropdown (🟠 Ollama Local)
+  - Conditional API key input (only shown for providers that need it)
+  - Enhanced modal design for API key input with help links
+  - Better error messaging and user guidance
+
+* **ENHANCED**: Error Handling Architecture
+  
+  - Provider-specific error handling in business logic
+  - Structured error responses with error types
+  - Graceful fallbacks for categorization failures
+  - Improved debugging and logging for different providers
+
+* **TECHNICAL**: Environment Configuration
+  
+  - Added ``OLLAMA_MODEL`` and ``OLLAMA_BASE_URL`` configuration
+  - Added ``SESSION_SECRET_KEY`` for secure session management
+  - Updated ``.env.sample`` with all new configuration options
+  - Better documentation of environment variables
+
+* **FIXED**: Chain Initialization Bug
+  
+  - Fixed missing ``self.chain`` attribute initialization
+  - Proper prompt template and chain setup for all providers
+  - Consistent LLM chain creation across all provider types
+
 1.1.0 (2025-01-10)
 ---------------------
 
