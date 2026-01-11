@@ -1,7 +1,7 @@
 # Scrutinium: Cross-GenAI Benchmarking
 
 <div align="center">
-  <img src="image/logo/logo.png" alt="Scrutinium Logo" width="200"/>
+  <img src="image/logo/logo1.png" alt="Scrutinium Logo" width="200"/>
 </div>
 
 A FastAPI-based web application for comparing and evaluating responses from various GenAI tools. This tool allows you to input responses from different AI models and get a comprehensive evaluation across multiple metrics.
