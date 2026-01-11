@@ -164,7 +164,7 @@ Please evaluate these responses according to the metrics defined above.""")
             return
         
         print("=" * 80)
-        print("GENAI BENCHMARKING EVALUATION REPORT")
+        print("SCRUTINIUM: CROSS-GENAI BENCHMARKING EVALUATION REPORT")
         print("=" * 80)
         print()
         

@@ -1,6 +1,18 @@
-# GenAI Benchmark Tool
+# Scrutinium: Cross-GenAI Benchmarking
 
 A FastAPI-based web application for comparing and evaluating responses from various GenAI tools. This tool allows you to input responses from different AI models and get a comprehensive evaluation across multiple metrics.
+
+## Name Origin
+
+**SCRUTINIUM** derives from Latin, meaning a careful examination or inquiry.
+
+In medieval scholarship, scrutinium referred to structured judgment based on evidence, not opinion.
+
+The name reflects this project's role as an impartial examiner of generative AI systems.
+
+SCRUTINIUM exists to evaluate, compare, and render reasoned verdicts across models.
+
+
 
 ## Features
 

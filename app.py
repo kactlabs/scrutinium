@@ -16,7 +16,7 @@ load_dotenv()
 # Import the new controller
 from controllers.benchmark_controller import router as benchmark_router
 
-app = FastAPI(title="GenAI Benchmark Tool", description="Compare and evaluate responses from various GenAI tools")
+app = FastAPI(title="Scrutinium: Cross-GenAI Benchmarking", description="Compare and evaluate responses from various GenAI tools")
 
 # Mount static files and templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -32,7 +32,7 @@ class EvaluationRequest(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Main page for GenAI benchmarking"""
+    """Main page for Scrutinium benchmarking"""
     return templates.TemplateResponse("index.html", {
         "request": request,
         "title": "Scrutinium - Cross-GenAI Benchmarking",
