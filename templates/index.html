@@ -312,9 +312,17 @@
                 });
 
                 const data = await response.json();
+                
+                console.log('Response received:', data);
+                console.log('Data.success:', data.success);
+                console.log('Data.table_data:', data.table_data);
+                console.log('Data.evaluation_results:', data.evaluation_results);
 
                 if (data.success) {
+                    console.log('Evaluation successful, displaying results...');
+                    console.log('About to call displayResults...');
                     displayResults(data);
+                    console.log('displayResults called');
                     showStatus('Evaluation completed successfully!', 'success');
                 } else if (data.gemini_limit_reached) {
                     // Show Gemini limit modal
@@ -362,15 +370,27 @@
         }
 
         function displayResults(data) {
-            const resultsSection = document.getElementById('resultsSection');
-            const resultsTable = document.getElementById('resultsTable');
-            const detailedResults = document.getElementById('detailedResults');
+            try {
+                console.log('displayResults called with data:', data);
+                
+                const resultsSection = document.getElementById('resultsSection');
+                const resultsTable = document.getElementById('resultsTable');
+                const detailedResults = document.getElementById('detailedResults');
+                
+                console.log('Elements found:');
+                console.log('- resultsSection:', resultsSection);
+                console.log('- resultsTable:', resultsTable);
+                console.log('- detailedResults:', detailedResults);
 
-            // Check if table_data exists and has content
-            if (!data.table_data || data.table_data.length === 0) {
-                showStatus('No results data received', 'error');
-                return;
-            }
+                // Check if table_data exists and has content
+                if (!data.table_data || data.table_data.length === 0) {
+                    console.log('No table data found:', data.table_data);
+                    showStatus('No results data received', 'error');
+                    return;
+                }
+                
+                console.log('Table data found:', data.table_data.length, 'items');
+                console.log('Table data content:', data.table_data);
 
             // Display judge's answer if available and enabled
             let judgeAnswerHTML = '';
@@ -496,7 +516,19 @@
             detailedHTML += '</div>';
             detailedResults.innerHTML = detailedHTML;
 
+            console.log('About to show results section...');
+            console.log('Results section element:', resultsSection);
             resultsSection.style.display = 'block';
+            console.log('Results section display set to:', resultsSection.style.display);
+            
+            // Scroll to results section
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+            console.log('displayResults completed successfully');
+            
+            } catch (error) {
+                console.error('Error in displayResults:', error);
+                showStatus('Error displaying results: ' + error.message, 'error');
+            }
         }
 
         function copyShareUrl() {

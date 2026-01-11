@@ -141,32 +141,37 @@ For each tool response (excluding your own), provide:
 - Brief reasoning for each score
 - An overall score (average of all metrics, also out of 1000)
 
-IMPORTANT: Do NOT include yourself in the evaluations or ranking. Only evaluate the provided tool responses.
+IMPORTANT: 
+- Do NOT include yourself in the evaluations or ranking. Only evaluate the provided tool responses.
+- You MUST respond with valid JSON only. Do not include any text before or after the JSON.
+- Do not use markdown code blocks or any formatting around the JSON.
 
-Format your response as valid JSON with this structure:
+Format your response as valid JSON with this EXACT structure:
 {{
     "judge_answer": "Your comprehensive answer to the question for reference only...",
     "evaluations": [
         {{
             "tool": "ToolName",
-            "truthfulness": {{"score": XXX, "reasoning": "..."}},
-            "creativity": {{"score": XXX, "reasoning": "..."}},
-            "coherence": {{"score": XXX, "reasoning": "..."}},
-            "utility": {{"score": XXX, "reasoning": "..."}},
+            "truthfulness": {{"score": XXX, "reasoning": "Brief explanation..."}},
+            "creativity": {{"score": XXX, "reasoning": "Brief explanation..."}},
+            "coherence": {{"score": XXX, "reasoning": "Brief explanation..."}},
+            "utility": {{"score": XXX, "reasoning": "Brief explanation..."}},
             "overall_score": XXX,
-            "notes": "..."
+            "notes": "Additional notes if needed"
         }}
     ],
     "winner": "ToolName",
-    "winner_reasoning": "...",
-    "ranking": ["Tool1", "Tool2", ...]
+    "winner_reasoning": "Explanation of why this tool won...",
+    "ranking": ["Tool1", "Tool2", "Tool3"]
 }}"""),
             ("human", """Question: {question}
 
 Tool Responses:
 {responses}
 
-Please first provide your own comprehensive answer to this question for reference, then evaluate only the provided tool responses (do not evaluate your own answer) according to the metrics defined above.""")
+Please first provide your own comprehensive answer to this question for reference, then evaluate only the provided tool responses (do not evaluate your own answer) according to the metrics defined above. 
+
+RESPOND WITH VALID JSON ONLY - NO OTHER TEXT.""")
         ])
         
         # Create enhanced chain that includes judge's own answer
@@ -350,18 +355,49 @@ Please evaluate these responses according to the metrics defined above.""")
             
             # Parse JSON response
             try:
-                # Some models wrap JSON in markdown code blocks
-                if "```json" in result:
-                    result = result.split("```json")[1].split("```")[0].strip()
-                elif "```" in result:
-                    result = result.split("```")[1].split("```")[0].strip()
+                # Clean up the response - remove any markdown formatting
+                cleaned_result = result.strip()
                 
-                evaluation_data = json.loads(result)
+                # Remove markdown code blocks if present
+                if "```json" in cleaned_result:
+                    cleaned_result = cleaned_result.split("```json")[1].split("```")[0].strip()
+                elif "```" in cleaned_result:
+                    cleaned_result = cleaned_result.split("```")[1].split("```")[0].strip()
+                
+                # Try to find JSON content if there's extra text
+                if not cleaned_result.startswith('{'):
+                    # Look for JSON starting with {
+                    json_start = cleaned_result.find('{')
+                    if json_start != -1:
+                        cleaned_result = cleaned_result[json_start:]
+                        # Find the matching closing brace
+                        brace_count = 0
+                        json_end = -1
+                        for i, char in enumerate(cleaned_result):
+                            if char == '{':
+                                brace_count += 1
+                            elif char == '}':
+                                brace_count -= 1
+                                if brace_count == 0:
+                                    json_end = i + 1
+                                    break
+                        if json_end != -1:
+                            cleaned_result = cleaned_result[:json_end]
+                
+                evaluation_data = json.loads(cleaned_result)
                 return evaluation_data
+                
             except json.JSONDecodeError as e:
                 print(f"Error parsing JSON response: {e}")
                 print(f"Raw response: {result}")
-                return {"error": "Failed to parse evaluation", "raw_response": result}
+                print(f"Cleaned response: {cleaned_result if 'cleaned_result' in locals() else 'N/A'}")
+                
+                # Return a fallback error response
+                return {
+                    "error": "Failed to parse evaluation - AI returned non-JSON response", 
+                    "raw_response": result[:500] + "..." if len(result) > 500 else result,
+                    "provider": self.provider
+                }
                 
         except Exception as e:
             # Handle provider-specific errors
