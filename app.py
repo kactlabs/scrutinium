@@ -6,8 +6,12 @@ from pydantic import BaseModel
 from typing import Dict, Optional
 import uvicorn
 import os
+from dotenv import load_dotenv
 from business import GenAIBenchmarkJudge
 from db import benchmark_handler
+
+# Load environment variables
+load_dotenv()
 
 # Import the new controller
 from controllers.benchmark_controller import router as benchmark_router
@@ -58,7 +62,16 @@ async def evaluate_responses(request: EvaluationRequest):
             )
             evaluation_results["scid"] = scid
             evaluation_results["share_uuid"] = share_uuid
-            evaluation_results["share_url"] = f"/share/{share_uuid}"
+            
+            # Use DOMAIN_NAME from environment or fallback to relative URL
+            domain_name = os.getenv("DOMAIN_NAME", "").rstrip('/')  # Remove trailing slash if present
+            if domain_name:
+                evaluation_results["share_url"] = f"{domain_name}/share/{share_uuid}"
+                print(f"DEBUG: Generated share URL: {evaluation_results['share_url']}")
+            else:
+                evaluation_results["share_url"] = f"/share/{share_uuid}"
+                print(f"DEBUG: Generated relative share URL: {evaluation_results['share_url']}")
+                
         except Exception as db_error:
             print(f"Warning: Failed to save to MongoDB: {db_error}")
             # Continue without failing the evaluation
@@ -166,10 +179,15 @@ async def share_results(request: Request, share_uuid: str):
         for item in table_data:
             print(f"{item['tool']}: {item['overall_score']}")
         
+        # Create title with question
+        question = result.get("question", "")
+        title = f"Scrutinium - {question}" if question else "Scrutinium - Shared Results"
+        
         return templates.TemplateResponse("share.html", {
             "request": request,
+            "title": title,
             "result": result,
-            "question": result.get("question", ""),
+            "question": question,
             "answers": answers,
             "metrics": metrics,
             "table_data": table_data,
