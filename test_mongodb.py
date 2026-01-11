@@ -36,27 +36,27 @@ async def test_mongodb_connection():
             "evaluations": [
                 {
                     "tool": "ChatGPT",
-                    "truthfulness": {"score": 8, "reasoning": "Good factual accuracy"},
-                    "creativity": {"score": 7, "reasoning": "Decent creativity"},
-                    "coherence": {"score": 9, "reasoning": "Very coherent"},
-                    "utility": {"score": 8, "reasoning": "Quite useful"},
-                    "overall_score": 8.0
+                    "truthfulness": {"score": 800, "reasoning": "Good factual accuracy"},
+                    "creativity": {"score": 700, "reasoning": "Decent creativity"},
+                    "coherence": {"score": 900, "reasoning": "Very coherent"},
+                    "utility": {"score": 800, "reasoning": "Quite useful"},
+                    "overall_score": 800
                 },
                 {
                     "tool": "DeepSeek", 
-                    "truthfulness": {"score": 9, "reasoning": "Excellent accuracy"},
-                    "creativity": {"score": 8, "reasoning": "Creative approach"},
-                    "coherence": {"score": 8, "reasoning": "Well structured"},
-                    "utility": {"score": 9, "reasoning": "Very practical"},
-                    "overall_score": 8.5
+                    "truthfulness": {"score": 900, "reasoning": "Excellent accuracy"},
+                    "creativity": {"score": 800, "reasoning": "Creative approach"},
+                    "coherence": {"score": 800, "reasoning": "Well structured"},
+                    "utility": {"score": 900, "reasoning": "Very practical"},
+                    "overall_score": 850
                 },
                 {
                     "tool": "Claude",
-                    "truthfulness": {"score": 9, "reasoning": "Highly accurate"},
-                    "creativity": {"score": 9, "reasoning": "Very creative"},
-                    "coherence": {"score": 9, "reasoning": "Excellent flow"},
-                    "utility": {"score": 8, "reasoning": "Useful insights"},
-                    "overall_score": 8.75
+                    "truthfulness": {"score": 900, "reasoning": "Highly accurate"},
+                    "creativity": {"score": 900, "reasoning": "Very creative"},
+                    "coherence": {"score": 900, "reasoning": "Excellent flow"},
+                    "utility": {"score": 800, "reasoning": "Useful insights"},
+                    "overall_score": 875
                 }
             ]
         }

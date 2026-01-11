@@ -124,12 +124,12 @@ async def save_evaluation_results(
     for eval_item in evaluation_data.get("evaluations", []):
         tool_name = eval_item["tool"].lower()
         
-        # Scores
-        truthfulness_scores[tool_name] = eval_item["truthfulness"]["score"]
-        creativity_scores[tool_name] = eval_item["creativity"]["score"]
-        coherence_scores[tool_name] = eval_item["coherence"]["score"]
-        utility_scores[tool_name] = eval_item["utility"]["score"]
-        overall_scores[tool_name] = eval_item["overall_score"]
+        # Scores - convert from 1000-scale to 10-scale with 3 decimal places
+        truthfulness_scores[tool_name] = round(float(eval_item["truthfulness"]["score"]) / 100, 3)
+        creativity_scores[tool_name] = round(float(eval_item["creativity"]["score"]) / 100, 3)
+        coherence_scores[tool_name] = round(float(eval_item["coherence"]["score"]) / 100, 3)
+        utility_scores[tool_name] = round(float(eval_item["utility"]["score"]) / 100, 3)
+        overall_scores[tool_name] = round(float(eval_item["overall_score"]) / 100, 3)
         
         # Detailed explanations
         truthfulness_details[tool_name] = eval_item["truthfulness"]["reasoning"]

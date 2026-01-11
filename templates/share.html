@@ -200,11 +200,11 @@
                         <tr class="{{ row_class }}">
                             <td><strong>{{ rank_emoji }}</strong></td>
                             <td><strong>{{ row.tool }}</strong></td>
-                            <td>{{ row.truthfulness }}/10</td>
-                            <td>{{ row.creativity }}/10</td>
-                            <td>{{ row.coherence }}/10</td>
-                            <td>{{ row.utility }}/10</td>
-                            <td><strong>{{ "%.1f"|format(row.overall_score) }}/10</strong></td>
+                            <td>{{ "%.3f"|format(row.truthfulness) }}/10</td>
+                            <td>{{ "%.3f"|format(row.creativity) }}/10</td>
+                            <td>{{ "%.3f"|format(row.coherence) }}/10</td>
+                            <td>{{ "%.3f"|format(row.utility) }}/10</td>
+                            <td><strong>{{ "%.3f"|format(row.overall_score) }}/10</strong></td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -230,12 +230,12 @@
                 {% set winner_class = 'winner-details' if loop.index0 == 0 else '' %}
                 
                 <div class="tool-details {{ winner_class }}">
-                    <h4>{{ rank_emoji }} {{ row.tool }} ({{ "%.1f"|format(row.overall_score) }}/10)</h4>
+                    <h4>{{ rank_emoji }} {{ row.tool }} ({{ "%.3f"|format(row.overall_score) }}/10)</h4>
                     <div class="metric-details">
-                        <p><strong>Truthfulness ({{ row.truthfulness }}/10):</strong> {{ metrics.truthfulness.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
-                        <p><strong>Creativity ({{ row.creativity }}/10):</strong> {{ metrics.creativity.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
-                        <p><strong>Coherence ({{ row.coherence }}/10):</strong> {{ metrics.coherence.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
-                        <p><strong>Utility ({{ row.utility }}/10):</strong> {{ metrics.utility.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
+                        <p><strong>Truthfulness ({{ "%.3f"|format(row.truthfulness) }}/10):</strong> {{ metrics.truthfulness.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
+                        <p><strong>Creativity ({{ "%.3f"|format(row.creativity) }}/10):</strong> {{ metrics.creativity.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
+                        <p><strong>Coherence ({{ "%.3f"|format(row.coherence) }}/10):</strong> {{ metrics.coherence.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
+                        <p><strong>Utility ({{ "%.3f"|format(row.utility) }}/10):</strong> {{ metrics.utility.details.get(tool_lower, 'Detailed reasoning not available') }}</p>
                     </div>
                     
                     <!-- Tool Response -->

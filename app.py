@@ -98,6 +98,31 @@ async def results_page(request: Request):
         "subtitle": "GenAI Tool Comparison Results"
     })
 
+@app.get("/test-formatting")
+async def test_formatting():
+    """Test endpoint to verify metric formatting"""
+    return {
+        "success": True,
+        "table_data": [
+            {
+                "Tool": "TestTool1",
+                "Truthfulness": 8.123,
+                "Creativity": 7.456,
+                "Coherence & Reasoning": 9.789,
+                "Utility/Actionability": 8.012,
+                "Overall Score": 8.345
+            },
+            {
+                "Tool": "TestTool2", 
+                "Truthfulness": 9.000,
+                "Creativity": 8.000,
+                "Coherence & Reasoning": 9.000,
+                "Utility/Actionability": 9.000,
+                "Overall Score": 8.750
+            }
+        ]
+    }
+
 @app.get("/share/{share_uuid}", response_class=HTMLResponse)
 async def share_results(request: Request, share_uuid: str):
     """Share page to display evaluation results by UUID"""
@@ -159,11 +184,11 @@ async def share_results(request: Request, share_uuid: str):
                 
             table_data.append({
                 "tool": tool,
-                "truthfulness": int(metrics["truthfulness"]["scores"].get(tool_lower, 0)),
-                "creativity": int(metrics["creativity"]["scores"].get(tool_lower, 0)),
-                "coherence": int(metrics["coherence"]["scores"].get(tool_lower, 0)),
-                "utility": int(metrics["utility"]["scores"].get(tool_lower, 0)),
-                "overall_score": overall_score
+                "truthfulness": round(float(metrics["truthfulness"]["scores"].get(tool_lower, 0)), 3),
+                "creativity": round(float(metrics["creativity"]["scores"].get(tool_lower, 0)), 3),
+                "coherence": round(float(metrics["coherence"]["scores"].get(tool_lower, 0)), 3),
+                "utility": round(float(metrics["utility"]["scores"].get(tool_lower, 0)), 3),
+                "overall_score": round(overall_score, 3)
             })
         
         # Debug: Print scores before sorting

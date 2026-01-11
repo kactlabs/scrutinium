@@ -27,27 +27,27 @@ async def test_sharing_functionality():
             "evaluations": [
                 {
                     "tool": "ChatGPT",
-                    "truthfulness": {"score": 9, "reasoning": "Accurate information about Paris being the capital, with correct geographical details"},
-                    "creativity": {"score": 6, "reasoning": "Standard response with basic landmark mention"},
-                    "coherence": {"score": 8, "reasoning": "Well-structured and clear"},
-                    "utility": {"score": 7, "reasoning": "Provides useful basic information"},
-                    "overall_score": 7.5
+                    "truthfulness": {"score": 900, "reasoning": "Accurate information about Paris being the capital, with correct geographical details"},
+                    "creativity": {"score": 600, "reasoning": "Standard response with basic landmark mention"},
+                    "coherence": {"score": 800, "reasoning": "Well-structured and clear"},
+                    "utility": {"score": 700, "reasoning": "Provides useful basic information"},
+                    "overall_score": 750
                 },
                 {
                     "tool": "DeepSeek", 
-                    "truthfulness": {"score": 9, "reasoning": "Correct factual information about Paris"},
-                    "creativity": {"score": 7, "reasoning": "Mentions multiple aspects - political, economic, cultural"},
-                    "coherence": {"score": 9, "reasoning": "Very coherent and well-organized"},
-                    "utility": {"score": 8, "reasoning": "Comprehensive overview of Paris's role"},
-                    "overall_score": 8.25
+                    "truthfulness": {"score": 900, "reasoning": "Correct factual information about Paris"},
+                    "creativity": {"score": 700, "reasoning": "Mentions multiple aspects - political, economic, cultural"},
+                    "coherence": {"score": 900, "reasoning": "Very coherent and well-organized"},
+                    "utility": {"score": 800, "reasoning": "Comprehensive overview of Paris's role"},
+                    "overall_score": 825
                 },
                 {
                     "tool": "Claude",
-                    "truthfulness": {"score": 10, "reasoning": "Highly accurate with specific historical detail (987 AD) and population data"},
-                    "creativity": {"score": 8, "reasoning": "Includes historical context and specific statistics"},
-                    "coherence": {"score": 9, "reasoning": "Excellent logical flow and structure"},
-                    "utility": {"score": 9, "reasoning": "Most comprehensive with historical and demographic details"},
-                    "overall_score": 9.0
+                    "truthfulness": {"score": 1000, "reasoning": "Highly accurate with specific historical detail (987 AD) and population data"},
+                    "creativity": {"score": 800, "reasoning": "Includes historical context and specific statistics"},
+                    "coherence": {"score": 900, "reasoning": "Excellent logical flow and structure"},
+                    "utility": {"score": 900, "reasoning": "Most comprehensive with historical and demographic details"},
+                    "overall_score": 900
                 }
             ],
             "winner": "Claude",

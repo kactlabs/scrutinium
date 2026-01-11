@@ -289,11 +289,11 @@
                     <tr class="${rowClass}">
                         <td><strong>${rankEmoji}</strong></td>
                         <td><strong>${row.Tool}</strong></td>
-                        <td>${row.Truthfulness}/10</td>
-                        <td>${row.Creativity}/10</td>
-                        <td>${row['Coherence & Reasoning']}/10</td>
-                        <td>${row['Utility/Actionability']}/10</td>
-                        <td><strong>${row['Overall Score']}/10</strong></td>
+                        <td>${parseFloat(row.Truthfulness).toFixed(3)}/10</td>
+                        <td>${parseFloat(row.Creativity).toFixed(3)}/10</td>
+                        <td>${parseFloat(row['Coherence & Reasoning']).toFixed(3)}/10</td>
+                        <td>${parseFloat(row['Utility/Actionability']).toFixed(3)}/10</td>
+                        <td><strong>${parseFloat(row['Overall Score']).toFixed(3)}/10</strong></td>
                     </tr>
                 `;
             });
@@ -327,12 +327,12 @@
                 
                 detailedHTML += `
                     <div class="tool-details ${winnerClass}">
-                        <h4>${rankEmoji} ${eval.tool} (${eval.overall_score}/10)</h4>
+                        <h4>${rankEmoji} ${eval.tool} (${parseFloat(eval.overall_score).toFixed(3)}/10)</h4>
                         <div class="metric-details">
-                            <p><strong>Truthfulness (${eval.truthfulness.score}/10):</strong> ${eval.truthfulness.reasoning}</p>
-                            <p><strong>Creativity (${eval.creativity.score}/10):</strong> ${eval.creativity.reasoning}</p>
-                            <p><strong>Coherence (${eval.coherence.score}/10):</strong> ${eval.coherence.reasoning}</p>
-                            <p><strong>Utility (${eval.utility.score}/10):</strong> ${eval.utility.reasoning}</p>
+                            <p><strong>Truthfulness (${parseFloat(eval.truthfulness.score).toFixed(3)}/10):</strong> ${eval.truthfulness.reasoning}</p>
+                            <p><strong>Creativity (${parseFloat(eval.creativity.score).toFixed(3)}/10):</strong> ${eval.creativity.reasoning}</p>
+                            <p><strong>Coherence (${parseFloat(eval.coherence.score).toFixed(3)}/10):</strong> ${eval.coherence.reasoning}</p>
+                            <p><strong>Utility (${parseFloat(eval.utility.score).toFixed(3)}/10):</strong> ${eval.utility.reasoning}</p>
                             ${eval.notes ? `<p><strong>Notes:</strong> ${eval.notes}</p>` : ''}
                         </div>
                     </div>

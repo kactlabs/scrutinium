@@ -74,20 +74,20 @@ Your task is to evaluate responses from various GenAI tools against these metric
 4. Utility/Actionability (Practical usefulness, Clarity for decision-making, Transferability to real-world tasks)
 
 For each tool's response, provide:
-- A score out of 10 for each metric
+- A score out of 1000 for each metric (use full range 0-1000 for maximum precision, e.g., 862, 745, 923)
 - Brief reasoning for each score
-- An overall score (average of all metrics)
+- An overall score (average of all metrics, also out of 1000)
 
 Format your response as valid JSON with this structure:
 {{
     "evaluations": [
         {{
             "tool": "ToolName",
-            "truthfulness": {{"score": X, "reasoning": "..."}},
-            "creativity": {{"score": X, "reasoning": "..."}},
-            "coherence": {{"score": X, "reasoning": "..."}},
-            "utility": {{"score": X, "reasoning": "..."}},
-            "overall_score": X.X,
+            "truthfulness": {{"score": XXX, "reasoning": "..."}},
+            "creativity": {{"score": XXX, "reasoning": "..."}},
+            "coherence": {{"score": XXX, "reasoning": "..."}},
+            "utility": {{"score": XXX, "reasoning": "..."}},
+            "overall_score": XXX,
             "notes": "..."
         }}
     ],
@@ -171,13 +171,20 @@ Please evaluate these responses according to the metrics defined above.""")
         
         rows = []
         for eval_item in evaluation_data.get("evaluations", []):
+            # Convert scores from 1000-scale to 10-scale with 3 decimal places
+            truthfulness_score = round(float(eval_item["truthfulness"]["score"]) / 100, 3)
+            creativity_score = round(float(eval_item["creativity"]["score"]) / 100, 3)
+            coherence_score = round(float(eval_item["coherence"]["score"]) / 100, 3)
+            utility_score = round(float(eval_item["utility"]["score"]) / 100, 3)
+            overall_score = round(float(eval_item["overall_score"]) / 100, 3)
+            
             rows.append({
                 "Tool": eval_item["tool"],
-                "Truthfulness": eval_item["truthfulness"]["score"],
-                "Creativity": eval_item["creativity"]["score"],
-                "Coherence & Reasoning": eval_item["coherence"]["score"],
-                "Utility/Actionability": eval_item["utility"]["score"],
-                "Overall Score": eval_item["overall_score"],
+                "Truthfulness": truthfulness_score,
+                "Creativity": creativity_score,
+                "Coherence & Reasoning": coherence_score,
+                "Utility/Actionability": utility_score,
+                "Overall Score": overall_score,
                 "Notes": eval_item.get("notes", "")
             })
         
