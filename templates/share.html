@@ -11,11 +11,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         .share-header {
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-            color: white;
+            background: #ffffff;
+            color: #2c3e50;
             padding: 2rem 0;
             margin: -40px -40px 40px -40px;
             border-radius: 12px 12px 0 0;
+            border-bottom: 3px solid #3498db;
         }
         .share-header-content {
             max-width: 1200px;
@@ -27,20 +28,34 @@
             flex-wrap: wrap;
             gap: 20px;
         }
+        .share-header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .share-logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #f8f9fa;
+            padding: 8px;
+            border: 2px solid #e1e8ed;
+        }
         .share-header h1 {
-            color: white;
+            color: #2c3e50;
             margin-bottom: 8px;
             font-size: 32px;
             text-align: left;
         }
         .share-header p {
-            color: rgba(255, 255, 255, 0.9);
+            color: #7f8c8d;
             margin: 0;
             font-size: 16px;
         }
         .copy-link-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: #3498db;
+            border: 2px solid #3498db;
             color: white;
             padding: 12px 24px;
             border-radius: 8px;
@@ -52,7 +67,8 @@
             gap: 8px;
         }
         .copy-link-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: #2980b9;
+            border-color: #2980b9;
             transform: translateY(-2px);
         }
         .question-section {
@@ -114,6 +130,15 @@
                 flex-direction: column;
                 text-align: center;
             }
+            .share-header-left {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+            .share-logo {
+                width: 50px;
+                height: 50px;
+            }
             .share-header h1 {
                 font-size: 28px;
                 text-align: center;
@@ -131,9 +156,12 @@
         <!-- Header -->
         <div class="share-header">
             <div class="share-header-content">
-                <div>
-                    <h1>🔗 Shared Scrutinium Results</h1>
-                    <p>Evaluated by {{ judge|title }} • {{ created_at.strftime('%B %d, %Y at %I:%M %p') if created_at else 'Recently' }}</p>
+                <div class="share-header-left">
+                    <img src="/static/images/slogo2.png" alt="Scrutinium Logo" class="share-logo">
+                    <div>
+                        <h1>Shared Scrutinium Results</h1>
+                        <p>Evaluated by {{ judge|title }} • {{ created_at.strftime('%B %d, %Y at %I:%M %p') if created_at else 'Recently' }}</p>
+                    </div>
                 </div>
                 <button class="copy-link-btn" onclick="copyShareLink()">
                     📋 Copy Link
@@ -248,21 +276,69 @@
 
         function copyShareLink() {
             const url = window.location.href;
-            navigator.clipboard.writeText(url).then(function() {
-                // Show success feedback
-                const btn = document.querySelector('.copy-link-btn');
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '✅ Copied!';
-                btn.style.background = 'rgba(46, 204, 113, 0.3)';
-                
-                setTimeout(function() {
-                    btn.innerHTML = originalText;
-                    btn.style.background = 'rgba(255, 255, 255, 0.2)';
-                }, 2000);
-            }).catch(function(err) {
-                console.error('Could not copy text: ', err);
-                alert('Failed to copy link. Please copy manually: ' + url);
-            });
+            console.log('Attempting to copy URL:', url);
+            
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url).then(function() {
+                    console.log('Clipboard API success');
+                    showCopySuccess();
+                }).catch(function(err) {
+                    console.error('Clipboard API failed:', err);
+                    fallbackCopyTextToClipboard(url);
+                });
+            } else {
+                console.log('Clipboard API not available, using fallback');
+                fallbackCopyTextToClipboard(url);
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            
+            // Avoid scrolling to bottom
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                console.log('Fallback copy result:', successful);
+                if (successful) {
+                    showCopySuccess();
+                } else {
+                    showCopyError(text);
+                }
+            } catch (err) {
+                console.error('Fallback copy failed:', err);
+                showCopyError(text);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function showCopySuccess() {
+            const btn = document.querySelector('.copy-link-btn');
+            const originalText = btn.innerHTML;
+            const originalBackground = btn.style.background || '#3498db';
+            
+            btn.innerHTML = '✅ Copied!';
+            btn.style.background = '#27ae60';
+            
+            setTimeout(function() {
+                btn.innerHTML = originalText;
+                btn.style.background = originalBackground;
+            }, 2000);
+        }
+
+        function showCopyError(url) {
+            alert('Failed to copy automatically. Please copy this link manually:\n\n' + url);
         }
     </script>
 </body>
