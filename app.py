@@ -7,6 +7,7 @@ from typing import Dict, Optional
 import uvicorn
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 from business import GenAIBenchmarkJudge
 from db import benchmark_handler
 
@@ -52,13 +53,22 @@ async def evaluate_responses(request: EvaluationRequest):
         if "error" in evaluation_results:
             raise HTTPException(status_code=500, detail=evaluation_results["error"])
         
+        # Categorize the question using the same judge
+        try:
+            category = judge.categorize_question(request.question)
+            print(f"DEBUG: Question categorized as: {category}")
+        except Exception as e:
+            print(f"Warning: Failed to categorize question: {e}")
+            category = "general"  # Default fallback
+        
         # Save results to MongoDB
         try:
             scid, share_uuid = await benchmark_handler.save_evaluation_results(
                 judge=request.provider,
                 question=request.question,
                 responses=request.responses,
-                evaluation_data=evaluation_results
+                evaluation_data=evaluation_results,
+                category=category  # Pass the category to the save function
             )
             evaluation_results["scid"] = scid
             evaluation_results["share_uuid"] = share_uuid
@@ -97,6 +107,74 @@ async def results_page(request: Request):
         "title": "Evaluation Results",
         "subtitle": "GenAI Tool Comparison Results"
     })
+
+@app.get("/archive", response_class=HTMLResponse)
+async def archive_page(request: Request):
+    """Archive page to display all collected benchmark results"""
+    try:
+        # Get all benchmark results from database
+        results = await benchmark_handler.get_all_benchmark_results()
+        
+        # Sort by creation date (newest first)
+        results.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
+        
+        # Process results for display
+        processed_results = []
+        for result in results:
+            # Get the question (truncated for display)
+            question = result.get("question", "")
+            question_preview = question[:100] + "..." if len(question) > 100 else question
+            
+            # Get the winner (tool with highest overall score)
+            overall_scores = result.get("overall_score", {})
+            winner = ""
+            if overall_scores:
+                winner = max(overall_scores.items(), key=lambda x: float(x[1]) if x[1] else 0)[0]
+                winner = winner.title()  # Capitalize first letter
+            
+            # Count participating tools
+            answers = {
+                "ChatGPT": result.get("chatgpt_answer", ""),
+                "Kimi": result.get("kimi_answer", ""),
+                "DeepSeek": result.get("deepseek_answer", ""),
+                "Qwen": result.get("qwen_answer", ""),
+                "Mistral": result.get("mistral_answer", ""),
+                "Claude": result.get("claude_answer", ""),
+                "Grok": result.get("grok_answer", "")
+            }
+            tool_count = len([v for v in answers.values() if v.strip()])
+            
+            # Format creation date
+            created_at = result.get("created_at")
+            date_str = ""
+            if created_at:
+                if isinstance(created_at, str):
+                    date_str = created_at[:10]  # Just the date part
+                else:
+                    date_str = created_at.strftime("%Y-%m-%d")
+            
+            processed_results.append({
+                "scid": result.get("scid", ""),
+                "share_uuid": result.get("share_uuid", ""),
+                "question": question,
+                "question_preview": question_preview,
+                "winner": winner,
+                "tool_count": tool_count,
+                "judge": result.get("judge", "").title(),
+                "created_at": date_str,
+                "category": result.get("category", "general")  # Use DB category or default to general
+            })
+        
+        return templates.TemplateResponse("archive.html", {
+            "request": request,
+            "title": "Scrutinium Archive",
+            "subtitle": "Browse all collected benchmark results",
+            "results": processed_results,
+            "total_count": len(processed_results)
+        })
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/test-formatting")
 async def test_formatting():

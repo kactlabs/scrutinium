@@ -156,6 +156,62 @@ Please evaluate these responses according to the metrics defined above.""")
             print(f"Raw response: {result}")
             return {"error": "Failed to parse evaluation", "raw_response": result}
     
+    def categorize_question(self, question: str) -> str:
+        """
+        Categorize a question into an appropriate category using LLM.
+        
+        Args:
+            question: The question to categorize
+            
+        Returns:
+            Category string determined by the LLM
+        """
+        # Define the categorization prompt template
+        categorization_prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are an expert content categorizer. Your task is to categorize questions into appropriate topic categories.
+
+Analyze the given question and provide a single, concise category name that best describes the main topic or domain of the question.
+
+Guidelines:
+- Use clear, descriptive category names (e.g., "artificial intelligence", "finance", "health", "science", "history", "sports", etc.)
+- Choose the most specific and relevant category possible
+- Use lowercase for consistency
+- Prefer single words or short phrases (1-3 words maximum)
+- If the question spans multiple topics, choose the primary/dominant topic
+
+Examples:
+- "How does machine learning work?" → "artificial intelligence"
+- "What are the best investment strategies?" → "finance" 
+- "Who won the World Cup in 2022?" → "sports"
+- "How do vaccines work?" → "medicine"
+- "What caused World War II?" → "history"
+- "How to bake a chocolate cake?" → "cooking"
+
+Respond with ONLY the category name, no explanations or additional text."""),
+            ("human", "Categorize this question: {question}")
+        ])
+        
+        # Create a simple chain for categorization
+        categorization_chain = categorization_prompt | self.llm | StrOutputParser()
+        
+        try:
+            # Get the category
+            result = categorization_chain.invoke({"question": question})
+            category = result.strip().lower()
+            
+            # Clean up the result (remove quotes, extra spaces, etc.)
+            category = category.replace('"', '').replace("'", "").strip()
+            
+            # Ensure we have a valid category (not empty)
+            if category and len(category) > 0:
+                return category
+            else:
+                return "general"  # Fallback if empty
+                
+        except Exception as e:
+            print(f"Error categorizing question: {e}")
+            return "general"  # Default fallback
+
     def create_results_table(self, evaluation_data: Dict) -> pd.DataFrame:
         """
         Create a pandas DataFrame from evaluation results.

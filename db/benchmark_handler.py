@@ -37,7 +37,8 @@ async def create_benchmark_result(
     creativity_details: Dict = None,
     coherence_details: Dict = None,
     utility_details: Dict = None,
-    share_uuid: str = None
+    share_uuid: str = None,
+    category: str = "general"
 ):
     """
     Create a new benchmark result with auto-increment scid starting from ID_STARTING_INDEX
@@ -67,6 +68,7 @@ async def create_benchmark_result(
         "share_uuid": share_uuid,
         "judge": judge,
         "question": question,
+        "category": category,
         "chatgpt_answer": chatgpt_answer,
         "kimi_answer": kimi_answer,
         "deepseek_answer": deepseek_answer,
@@ -93,7 +95,8 @@ async def save_evaluation_results(
     judge: str,
     question: str,
     responses: Dict[str, str],
-    evaluation_data: Dict
+    evaluation_data: Dict,
+    category: str = "general"
 ):
     """
     Save evaluation results to MongoDB with proper structure including detailed explanations
@@ -141,6 +144,7 @@ async def save_evaluation_results(
     scid, share_uuid = await create_benchmark_result(
         judge=judge,
         question=question,
+        category=category,
         chatgpt_answer=chatgpt_answer,
         kimi_answer=kimi_answer,
         deepseek_answer=deepseek_answer,

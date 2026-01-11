@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Google Analytics -->
+    {% include 'sub/google_analytics.html' %}
+    
+    <style>
+        /* Archive-specific styles */
+        .archive-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .archive-stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            font-size: 16px;
+            color: #7f8c8d;
+        }
+
+        body.dark .archive-stats {
+            color: #bdc3c7;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 8px 16px;
+            background: #e1e8ed;
+            color: #2c3e50;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        body.dark .filter-tab {
+            background: #404040;
+            color: #e5e5e5;
+        }
+
+        .filter-tab.active,
+        .filter-tab:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .archive-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 24px;
+            margin-top: 20px;
+        }
+
+        .archive-card {
+            background: #ffffff;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        body.dark .archive-card {
+            background: #2a2a2a;
+            border-color: #404040;
+        }
+
+        .archive-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+            border-color: #3498db;
+        }
+
+        body.dark .archive-card:hover {
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-category {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #3498db;
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: capitalize;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        /* Dynamic category colors based on hash of category name */
+        .card-category {
+            background: var(--category-color, #3498db);
+        }
+
+        .card-title {
+            color: #2c3e50;
+            font-size: 16px;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 12px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        body.dark .card-title {
+            color: #ffffff;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e1e8ed;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+
+        body.dark .card-meta {
+            border-top-color: #404040;
+            color: #bdc3c7;
+        }
+
+        .card-date {
+            font-weight: 500;
+        }
+
+        .card-winner {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            color: #27ae60;
+        }
+
+        .card-stats {
+            display: flex;
+            gap: 16px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+
+        body.dark .card-stats {
+            color: #bdc3c7;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+
+        body.dark .empty-state {
+            color: #bdc3c7;
+        }
+
+        .empty-state h3 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: #2c3e50;
+        }
+
+        body.dark .empty-state h3 {
+            color: #ffffff;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+            text-decoration: none;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .archive-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .archive-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .filter-tabs {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌓</button>
+
+    <div class="container">
+        <div class="header-section">
+            <img src="/static/images/slogo2.png" alt="Scrutinium Logo" class="logo">
+            <h1>{{ title }}</h1>
+        </div>
+        <p class="subtitle">{{ subtitle }}</p>
+
+        <div class="archive-header">
+            <a href="/" class="back-btn">
+                ← Back to Benchmark
+            </a>
+            <div class="archive-stats">
+                <span>📊 {{ total_count }} Results</span>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="filter-tabs" id="filterTabs">
+            <button class="filter-tab active" onclick="filterResults('all')">All Topics</button>
+            <!-- Dynamic category tabs will be added here by JavaScript -->
+        </div>
+
+        <!-- Results Grid -->
+        {% if results %}
+        <div class="archive-grid" id="archiveGrid">
+            {% for result in results %}
+            <div class="archive-card" data-category="{{ result.category }}" onclick="openResult('{{ result.share_uuid }}')">
+                <div class="card-category {{ result.category }}">{{ result.category }}</div>
+                <div class="card-title">{{ result.question_preview }}</div>
+                <div class="card-stats">
+                    <div class="stat-item">
+                        <span>🤖</span>
+                        <span>{{ result.tool_count }} tools</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>⚖️</span>
+                        <span>{{ result.judge }}</span>
+                    </div>
+                </div>
+                <div class="card-meta">
+                    <div class="card-date">{{ result.created_at }}</div>
+                    {% if result.winner %}
+                    <div class="card-winner">
+                        <span>🏆</span>
+                        <span>{{ result.winner }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <h3>📭 No Results Yet</h3>
+            <p>Start benchmarking GenAI tools to see results here!</p>
+            <br>
+            <a href="/" class="back-btn">Start Benchmarking</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Load theme preference
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark');
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            const theme = document.body.classList.contains('dark') ? 'dark' : 'light';
+            localStorage.setItem('theme', theme);
+        }
+
+        function openResult(shareUuid) {
+            window.open(`/share/${shareUuid}`, '_blank');
+        }
+
+        function filterResults(category) {
+            // Update active tab
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Filter cards
+            const cards = document.querySelectorAll('.archive-card');
+            cards.forEach(card => {
+                if (category === 'all' || card.dataset.category === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Auto-categorize cards on page load (now using database categories)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Generate dynamic filter tabs based on available categories
+            generateCategoryTabs();
+            
+            // Assign colors to categories
+            assignCategoryColors();
+            
+            console.log('Archive loaded with dynamic database categories');
+        });
+
+        function generateCategoryTabs() {
+            const cards = document.querySelectorAll('.archive-card');
+            const categories = new Set();
+            
+            // Collect all unique categories
+            cards.forEach(card => {
+                const category = card.dataset.category;
+                if (category && category !== 'all') {
+                    categories.add(category);
+                }
+            });
+            
+            // Sort categories alphabetically
+            const sortedCategories = Array.from(categories).sort();
+            
+            // Get the filter tabs container
+            const filterTabs = document.getElementById('filterTabs');
+            
+            // Add category tabs
+            sortedCategories.forEach(category => {
+                const tab = document.createElement('button');
+                tab.className = 'filter-tab';
+                tab.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+                tab.onclick = () => filterResults(category);
+                filterTabs.appendChild(tab);
+            });
+        }
+
+        function assignCategoryColors() {
+            const cards = document.querySelectorAll('.archive-card');
+            const categoryColors = {};
+            
+            // Predefined color palette
+            const colors = [
+                '#3498db', '#e67e22', '#9b59b6', '#2ecc71', '#e74c3c',
+                '#f39c12', '#1abc9c', '#34495e', '#16a085', '#27ae60',
+                '#2980b9', '#8e44ad', '#d35400', '#c0392b', '#7f8c8d'
+            ];
+            
+            // Assign colors to categories
+            const categories = [...new Set(Array.from(cards).map(card => card.dataset.category))];
+            categories.forEach((category, index) => {
+                if (category && category !== 'all') {
+                    categoryColors[category] = colors[index % colors.length];
+                }
+            });
+            
+            // Apply colors to category badges
+            cards.forEach(card => {
+                const category = card.dataset.category;
+                const categoryBadge = card.querySelector('.card-category');
+                if (categoryBadge && categoryColors[category]) {
+                    categoryBadge.style.backgroundColor = categoryColors[category];
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

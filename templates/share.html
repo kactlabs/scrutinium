@@ -165,6 +165,10 @@
                     <div>
                         <h1>Shared Scrutinium Results</h1>
                         <p>Evaluated by {{ judge|title }} • {{ created_at.strftime('%B %d, %Y at %I:%M %p') if created_at else 'Recently' }}</p>
+                        <div class="nav-links" style="margin-top: 12px;">
+                            <a href="/" class="nav-link" style="font-size: 12px; padding: 6px 12px;">🏠 Home</a>
+                            <a href="/archive" class="nav-link" style="font-size: 12px; padding: 6px 12px;">📚 Archive</a>
+                        </div>
                     </div>
                 </div>
                 <button class="copy-link-btn" onclick="copyShareLink()">
