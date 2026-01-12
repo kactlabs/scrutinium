@@ -180,10 +180,11 @@ RESPOND WITH VALID JSON ONLY - NO OTHER TEXT.""")
     def get_judge_name(self) -> str:
         """
         Get the judge name for database storage.
-        For Ollama, returns the specific model name, otherwise returns the provider name.
+        For Ollama, returns "Ollama - {model_name}", otherwise returns the provider name.
         """
         if self.provider == "ollama":
-            return getattr(self, 'model_name', os.getenv("OLLAMA_MODEL", "ollama"))
+            model_name = getattr(self, 'model_name', os.getenv("OLLAMA_MODEL", "ollama"))
+            return f"Ollama - {model_name}"
         return self.provider
     
     def _handle_gemini_error(self, error):

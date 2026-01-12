@@ -42,7 +42,13 @@ def markdown_filter(text):
     md = markdown.Markdown(extensions=['nl2br', 'fenced_code', 'tables'])
     return md.convert(str(text))
 
+def tojson_filter(obj):
+    """Convert Python object to JSON string"""
+    import json
+    return json.dumps(obj)
+
 templates.env.filters['markdown'] = markdown_filter
+templates.env.filters['tojsonfilter'] = tojson_filter
 
 # Include routers
 app.include_router(benchmark_router)
@@ -402,6 +408,22 @@ async def share_results(request: Request, share_uuid: str):
         
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/archive-history", response_class=HTMLResponse)
+async def archive_history(request: Request):
+    """Archive history page showing evaluation activity heatmap"""
+    try:
+        # Get evaluation activity data from the database
+        activity_data = await benchmark_handler.get_evaluation_activity_by_date()
+        
+        return templates.TemplateResponse("archive_history.html", {
+            "request": request,
+            "title": "Scrutinium - Archive History",
+            "activity_data": activity_data
+        })
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -246,3 +246,31 @@ async def get_benchmark_stats():
         "total_results": total_count,
         "judge_distribution": judge_stats
     }
+
+async def get_evaluation_activity_by_date():
+    """
+    Get evaluation activity grouped by date for heatmap visualization
+    Returns a dictionary with dates as keys and count as values
+    """
+    pipeline = [
+        {
+            "$group": {
+                "_id": {
+                    "$dateToString": {
+                        "format": "%Y-%m-%d",
+                        "date": "$created_at"
+                    }
+                },
+                "count": {"$sum": 1}
+            }
+        },
+        {
+            "$sort": {"_id": 1}
+        }
+    ]
+    
+    activity_data = {}
+    async for doc in benchmark_collection.aggregate(pipeline):
+        activity_data[doc["_id"]] = doc["count"]
+    
+    return activity_data

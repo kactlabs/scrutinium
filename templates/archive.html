@@ -250,9 +250,14 @@
         <p class="subtitle">{{ subtitle }}</p>
 
         <div class="archive-header">
-            <a href="/" class="back-btn">
-                ← Back to Benchmark
-            </a>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <a href="/" class="back-btn">
+                    ← Back to Benchmark
+                </a>
+                <a href="/archive-history" class="back-btn" style="background: #3498db; color: white;">
+                    📊 Activity History
+                </a>
+            </div>
             <div class="archive-stats">
                 <span>📊 {{ total_count }} Results</span>
             </div>
