@@ -57,6 +57,11 @@
             position: relative;
             cursor: pointer;
         }
+        
+        .month .month-day-container:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-radius: 4px;
+        }
 
         .month .month-day-container.highlighted {
             cursor: pointer;
@@ -176,15 +181,90 @@
         }
 
         .tooltip {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 5px 8px;
-            border-radius: 4px;
-            font-size: 12px;
+            position: fixed;
+            background: white;
+            color: #333;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
             pointer-events: none;
-            z-index: 1000;
-            white-space: nowrap;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid #ddd;
+            max-width: 250px;
+            display: none;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .tooltip::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 8px solid white;
+            filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.1));
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: -9px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 9px solid transparent;
+            border-right: 9px solid transparent;
+            border-bottom: 9px solid #ddd;
+        }
+
+        .tooltip.tooltip-above::before {
+            top: auto;
+            bottom: -8px;
+            border-bottom: none;
+            border-top: 8px solid white;
+        }
+
+        .tooltip.tooltip-above::after {
+            top: auto;
+            bottom: -9px;
+            border-bottom: none;
+            border-top: 9px solid #ddd;
+        }
+
+        .tooltip-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .tooltip-count {
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .tooltip-times {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .tooltip-times li {
+            margin: 4px 0;
+            color: #3b82f6;
+            font-family: monospace;
+        }
+
+        .tooltip-times li:before {
+            content: "• ";
+            margin-right: 6px;
         }
 
         @media (max-width: 768px) {
@@ -243,14 +323,14 @@
             <div class="navbar-nav ms-auto">
                 <a class="nav-link" href="/">Home</a>
                 <a class="nav-link" href="/archive">Archive</a>
-                <a class="nav-link active" href="/archive-history">History</a>
+                <a class="nav-link active" href="/archive-heatmap">Heatmap</a>
             </div>
         </div>
     </nav>
 
     <div class="container mt-4">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-            <h2>📊 Evaluation Activity History</h2>
+            <h2>📊 Evaluation Activity Heatmap</h2>
             <a href="/archive" class="btn btn-outline-primary">
                 ← Back to Archive
             </a>
@@ -301,8 +381,10 @@
             const currentYear = new Date().getFullYear();
             const heatmapContainer = document.getElementById('heatmap');
             
-            // Calculate statistics
-            const totalEvaluations = Object.values(activityData).reduce((sum, count) => sum + count, 0);
+            // Calculate statistics - handle new data structure
+            const totalEvaluations = Object.values(activityData).reduce((sum, dayData) => {
+                return sum + (dayData.count || dayData || 0);
+            }, 0);
             const activeDays = Object.keys(activityData).length;
             
             document.getElementById('total-evaluations').textContent = totalEvaluations.toLocaleString();
@@ -318,8 +400,8 @@
                 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
             ];
             
-            // Find max activity for scaling
-            const maxActivity = Math.max(...Object.values(activityData), 1);
+            // Find max activity for scaling - handle new data structure
+            const maxActivity = Math.max(...Object.values(activityData).map(dayData => dayData.count || dayData || 0), 1);
             
             months.forEach((month, monthIndex) => {
                 const monthDiv = document.createElement('div');
@@ -352,7 +434,8 @@
                     dayContainer.className = 'month-day-container';
                     
                     const dateStr = `${currentYear}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    const activity = activityData[dateStr] || 0;
+                    const dayData = activityData[dateStr];
+                    const activity = dayData ? (dayData.count || dayData) : 0;
                     const level = getActivityLevel(activity, maxActivity);
                     
                     if (activity > 0) {
@@ -383,10 +466,25 @@
                     
                     dayContainer.dataset.date = dateStr;
                     dayContainer.dataset.count = activity;
+                    if (dayData && dayData.evaluations) {
+                        dayContainer.dataset.evaluations = JSON.stringify(dayData.evaluations);
+                    }
                     
-                    // Add hover events
-                    dayContainer.addEventListener('mouseenter', showTooltip);
+                    // Add hover events to both the container and any child elements
+                    dayContainer.addEventListener('mouseenter', function(e) {
+                        showTooltip(e, dayContainer);
+                    });
                     dayContainer.addEventListener('mouseleave', hideTooltip);
+                    
+                    // Also add events to child elements if they exist
+                    if (dayContainer.querySelector('.calendar-day')) {
+                        const calendarDay = dayContainer.querySelector('.calendar-day');
+                        calendarDay.addEventListener('mouseenter', function(e) {
+                            e.stopPropagation();
+                            showTooltip(e, dayContainer);
+                        });
+                        calendarDay.addEventListener('mouseleave', hideTooltip);
+                    }
                     
                     currentWeek.appendChild(dayContainer);
                     
@@ -439,7 +537,10 @@
             
             while (true) {
                 const dateStr = currentDate.toISOString().split('T')[0];
-                if (activityData[dateStr] && activityData[dateStr] > 0) {
+                const dayData = activityData[dateStr];
+                const activity = dayData ? (dayData.count || dayData) : 0;
+                
+                if (activity > 0) {
                     streak++;
                     currentDate.setDate(currentDate.getDate() - 1);
                 } else {
@@ -450,28 +551,94 @@
             return streak;
         }
         
-        function showTooltip(event) {
+        function showTooltip(event, container) {
             const tooltip = document.getElementById('tooltip');
-            const date = event.target.dataset.date;
-            const count = event.target.dataset.count || 0;
+            if (!tooltip) {
+                console.error('Tooltip element not found!');
+                return;
+            }
+            
+            const targetElement = container || event.target;
+            const date = targetElement.dataset.date;
+            const count = parseInt(targetElement.dataset.count) || 0;
+            const evaluationsData = targetElement.dataset.evaluations;
+            
+            console.log('Tooltip triggered:', { date, count, evaluationsData }); // Debug log
             
             if (date) {
                 const formattedDate = new Date(date).toLocaleDateString('en-US', {
-                    weekday: 'short',
                     year: 'numeric',
-                    month: 'short',
+                    month: 'long',
                     day: 'numeric'
-                });
+                }).toUpperCase();
                 
-                tooltip.textContent = `${count} evaluation${count !== '1' ? 's' : ''} on ${formattedDate}`;
+                let tooltipContent = `
+                    <div class="tooltip-header">${formattedDate}</div>
+                    <div class="tooltip-count">${count} evaluation${count !== 1 ? 's' : ''}</div>
+                `;
+                
+                if (evaluationsData && count > 0) {
+                    try {
+                        const evaluations = JSON.parse(evaluationsData);
+                        if (evaluations && evaluations.length > 0) {
+                            tooltipContent += '<ul class="tooltip-times">';
+                            // Show only first 5 evaluations to avoid tooltip being too long
+                            evaluations.slice(0, 5).forEach(eval => {
+                                tooltipContent += `<li>${eval.time}</li>`;
+                            });
+                            if (evaluations.length > 5) {
+                                tooltipContent += `<li>... and ${evaluations.length - 5} more</li>`;
+                            }
+                            tooltipContent += '</ul>';
+                        }
+                    } catch (e) {
+                        console.error('Error parsing evaluations data:', e);
+                    }
+                }
+                
+                tooltip.innerHTML = tooltipContent;
                 tooltip.style.display = 'block';
-                tooltip.style.left = event.pageX + 10 + 'px';
-                tooltip.style.top = event.pageY - 30 + 'px';
+                tooltip.style.visibility = 'visible';
+                tooltip.style.opacity = '1';
+                
+                // Position tooltip below the target element (like in the screenshot)
+                const rect = targetElement.getBoundingClientRect();
+                const tooltipRect = tooltip.getBoundingClientRect();
+                
+                // Center the tooltip horizontally under the day cell
+                let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+                // Position tooltip below the day cell with some spacing
+                let top = rect.bottom + 10;
+                
+                // Adjust if tooltip goes off screen horizontally
+                if (left < 10) {
+                    left = 10;
+                } else if (left + tooltipRect.width > window.innerWidth - 10) {
+                    left = window.innerWidth - tooltipRect.width - 10;
+                }
+                
+                // If tooltip would go off screen at bottom, show it above instead
+                if (top + tooltipRect.height > window.innerHeight - 10) {
+                    top = rect.top - tooltipRect.height - 10;
+                    // Remove the bottom arrow and add top arrow
+                    tooltip.classList.add('tooltip-above');
+                } else {
+                    tooltip.classList.remove('tooltip-above');
+                }
+                
+                tooltip.style.left = left + 'px';
+                tooltip.style.top = top + 'px';
+                
+                console.log('Tooltip positioned at:', { left, top, width: tooltipRect.width, height: tooltipRect.height });
+                console.log('Tooltip should be visible now');
             }
         }
         
         function hideTooltip() {
-            document.getElementById('tooltip').style.display = 'none';
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.display = 'none';
+            tooltip.style.visibility = 'hidden';
+            tooltip.style.opacity = '0';
         }
         
         // Initialize heatmap when page loads

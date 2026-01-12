@@ -411,16 +411,16 @@ async def share_results(request: Request, share_uuid: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/archive-history", response_class=HTMLResponse)
-async def archive_history(request: Request):
-    """Archive history page showing evaluation activity heatmap"""
+@app.get("/archive-heatmap", response_class=HTMLResponse)
+async def archive_heatmap(request: Request):
+    """Archive heatmap page showing evaluation activity heatmap"""
     try:
         # Get evaluation activity data from the database
         activity_data = await benchmark_handler.get_evaluation_activity_by_date()
         
-        return templates.TemplateResponse("archive_history.html", {
+        return templates.TemplateResponse("archive_heatmap.html", {
             "request": request,
-            "title": "Scrutinium - Archive History",
+            "title": "Scrutinium - Archive Heatmap",
             "activity_data": activity_data
         })
         

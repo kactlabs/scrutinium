@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script for the new archive-history functionality
+Test script for the new archive-heatmap functionality
 """
 
 import asyncio
@@ -13,9 +13,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from db.benchmark_handler import get_evaluation_activity_by_date
 
-async def test_archive_history():
-    """Test the archive history functionality"""
-    print("🧪 Testing Archive History Functionality")
+async def test_archive_heatmap():
+    """Test the archive heatmap functionality"""
+    print("🧪 Testing Archive Heatmap Functionality")
     print("=" * 50)
     
     try:
@@ -41,12 +41,12 @@ async def test_archive_history():
         else:
             print("ℹ️  No evaluation activity found in database")
             
-        print("\n✅ Archive history functionality test completed successfully!")
+        print("\n✅ Archive heatmap functionality test completed successfully!")
         
     except Exception as e:
-        print(f"❌ Error testing archive history: {str(e)}")
+        print(f"❌ Error testing archive heatmap: {str(e)}")
         import traceback
         traceback.print_exc()
 
 if __name__ == "__main__":
-    asyncio.run(test_archive_history())
+    asyncio.run(test_archive_heatmap())

@@ -250,7 +250,7 @@ async def get_benchmark_stats():
 async def get_evaluation_activity_by_date():
     """
     Get evaluation activity grouped by date for heatmap visualization
-    Returns a dictionary with dates as keys and count as values
+    Returns a dictionary with dates as keys and detailed evaluation info as values
     """
     pipeline = [
         {
@@ -261,7 +261,19 @@ async def get_evaluation_activity_by_date():
                         "date": "$created_at"
                     }
                 },
-                "count": {"$sum": 1}
+                "count": {"$sum": 1},
+                "evaluations": {
+                    "$push": {
+                        "time": {
+                            "$dateToString": {
+                                "format": "%H:%M:%S",
+                                "date": "$created_at"
+                            }
+                        },
+                        "question": "$question",
+                        "scid": "$scid"
+                    }
+                }
             }
         },
         {
@@ -271,6 +283,9 @@ async def get_evaluation_activity_by_date():
     
     activity_data = {}
     async for doc in benchmark_collection.aggregate(pipeline):
-        activity_data[doc["_id"]] = doc["count"]
+        activity_data[doc["_id"]] = {
+            "count": doc["count"],
+            "evaluations": doc["evaluations"]
+        }
     
     return activity_data
