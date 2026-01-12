@@ -7,85 +7,138 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
     <style>
-        .heatmap-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+        .calendar-layout {
+            outline: none;
         }
-        
-        .year-heatmap {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 40px;
-            margin: 20px 0;
-            max-width: 1000px;
-        }
-        
-        .month-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .month-label {
-            font-size: 12px;
-            font-weight: bold;
-            color: #666;
-            margin-bottom: 8px;
+
+        .calendar-grid {
+            max-width: 1400px;
+            margin: 8px auto 0 auto;
+            min-height: 800px;
             text-align: center;
-        }
-        
-        .month-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 14px);
-            gap: 2px;
-            justify-content: center;
-        }
-        
-        .day-cell {
-            width: 14px;
-            height: 14px;
-            border-radius: 2px;
-            cursor: pointer;
-            position: relative;
-            font-size: 10px;
             display: flex;
-            align-items: center;
+            flex-wrap: wrap;
             justify-content: center;
+        }
+
+        .month {
+            width: 320px;
+            height: 280px;
+            display: inline-block;
+            font-family: "Arial", sans-serif;
+            border-spacing: 0;
+            margin: 0;
+            padding: 0 20px;
+            vertical-align: bottom;
+        }
+
+        .month .month-blank-day-container {
+            width: 40px;
+            height: 40px;
+        }
+
+        .month .month-title {
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .month .month-day-container {
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            font-size: 14px;
+            vertical-align: middle;
             color: #666;
+            position: relative;
+            cursor: pointer;
         }
-        
-        .day-cell.empty {
-            background: transparent;
-            visibility: hidden;
+
+        .month .month-day-container.highlighted {
+            cursor: pointer;
+            z-index: 32;
         }
-        
-        .day-cell.level-0 {
-            background: #ebedf0;
+
+        .month .month-day-container .position {
+            position: absolute;
+            top: 50%;
+            left: 50%;
         }
-        
-        .day-cell.level-1 {
-            background: #c6e48b;
+
+        .month .month-week {
+            display: flex;
         }
-        
-        .day-cell.level-2 {
-            background: #7bc96f;
+
+        .calendar-day {
+            cursor: pointer;
         }
-        
-        .day-cell.level-3 {
-            background: #239a3b;
+
+        .calendar-day .measure {
+            position: relative;
+            height: 100%;
+            left: -50%;
+            top: -50%;
+            opacity: 0.3;
+            z-index: -1;
+            transition: opacity 300ms;
+            background-color: #1eafec;
+            border-radius: 50%;
         }
-        
-        .day-cell.level-4 {
-            background: #196127;
+
+        .calendar-day .measure.level-0 {
+            background-color: #ebedf0;
+            opacity: 0.5;
         }
-        
-        .day-cell:hover {
-            stroke: #000;
-            stroke-width: 1px;
-            transform: scale(1.1);
+
+        .calendar-day .measure.level-1 {
+            background-color: #c0d6ff;
+            opacity: 0.4;
         }
-        
+
+        .calendar-day .measure.level-2 {
+            background-color: #7bb3ff;
+            opacity: 0.5;
+        }
+
+        .calendar-day .measure.level-3 {
+            background-color: #3b82f6;
+            opacity: 0.6;
+        }
+
+        .calendar-day .measure.level-4 {
+            background-color: #1d4ed8;
+            opacity: 0.7;
+        }
+
+        .calendar-day > a {
+            color: #000;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .calendar-day > .position {
+            pointer-events: none;
+        }
+
+        .highlighted .calendar-day .measure {
+            opacity: 0.9;
+        }
+
+        .highlighted .calendar-day a {
+            font-size: 1.3em;
+        }
+
+        .stats-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
         .legend {
             display: flex;
             align-items: center;
@@ -93,21 +146,35 @@
             margin-top: 20px;
             font-size: 12px;
             color: #666;
+            justify-content: center;
         }
-        
+
         .legend-item {
             width: 12px;
             height: 12px;
             border-radius: 2px;
         }
-        
-        .stats-container {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 30px;
+
+        .legend-item.level-0 {
+            background: #ebedf0;
         }
-        
+
+        .legend-item.level-1 {
+            background: #c0d6ff;
+        }
+
+        .legend-item.level-2 {
+            background: #7bb3ff;
+        }
+
+        .legend-item.level-3 {
+            background: #3b82f6;
+        }
+
+        .legend-item.level-4 {
+            background: #1d4ed8;
+        }
+
         .tooltip {
             position: absolute;
             background: rgba(0, 0, 0, 0.8);
@@ -119,22 +186,49 @@
             z-index: 1000;
             white-space: nowrap;
         }
-        
+
         @media (max-width: 768px) {
-            .year-heatmap {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 20px;
+            .calendar-grid {
+                max-width: 100%;
+                padding: 0 10px;
             }
             
-            .heatmap-container {
-                padding: 10px;
+            .month {
+                width: 280px;
+                height: 240px;
+                padding: 0 10px;
+            }
+            
+            .month .month-day-container {
+                width: 35px;
+                height: 35px;
+                line-height: 35px;
+                font-size: 12px;
+            }
+            
+            .month .month-blank-day-container {
+                width: 35px;
+                height: 35px;
             }
         }
-        
+
         @media (max-width: 480px) {
-            .year-heatmap {
-                grid-template-columns: 1fr;
-                gap: 15px;
+            .month {
+                width: 240px;
+                height: 200px;
+                padding: 0 5px;
+            }
+            
+            .month .month-day-container {
+                width: 30px;
+                height: 30px;
+                line-height: 30px;
+                font-size: 11px;
+            }
+            
+            .month .month-blank-day-container {
+                width: 30px;
+                height: 30px;
             }
         }
     </style>
@@ -155,44 +249,44 @@
     </nav>
 
     <div class="container mt-4">
-        <div class="heatmap-container">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-                <h2>📊 Evaluation Activity History</h2>
-                <a href="/archive" class="btn btn-outline-primary">
-                    ← Back to Archive
-                </a>
-            </div>
-            
-            <div class="stats-container">
-                <div class="row">
-                    <div class="col-md-4">
-                        <h5 id="total-evaluations">0</h5>
-                        <small class="text-muted">Total Evaluations</small>
-                    </div>
-                    <div class="col-md-4">
-                        <h5 id="active-days">0</h5>
-                        <small class="text-muted">Active Days</small>
-                    </div>
-                    <div class="col-md-4">
-                        <h5 id="current-streak">0</h5>
-                        <small class="text-muted">Current Streak</small>
-                    </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <h2>📊 Evaluation Activity History</h2>
+            <a href="/archive" class="btn btn-outline-primary">
+                ← Back to Archive
+            </a>
+        </div>
+        
+        <div class="stats-container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5 id="total-evaluations">0</h5>
+                    <small class="text-muted">Total Evaluations</small>
+                </div>
+                <div class="col-md-4">
+                    <h5 id="active-days">0</h5>
+                    <small class="text-muted">Active Days</small>
+                </div>
+                <div class="col-md-4">
+                    <h5 id="current-streak">0</h5>
+                    <small class="text-muted">Current Streak</small>
                 </div>
             </div>
+        </div>
 
-            <div class="year-heatmap" id="heatmap">
+        <div class="calendar-layout" tabindex="1">
+            <div class="calendar-grid" id="heatmap">
                 <!-- Heatmap will be generated by JavaScript -->
             </div>
+        </div>
 
-            <div class="legend">
-                <span>Less</span>
-                <div class="legend-item level-0"></div>
-                <div class="legend-item level-1"></div>
-                <div class="legend-item level-2"></div>
-                <div class="legend-item level-3"></div>
-                <div class="legend-item level-4"></div>
-                <span>More</span>
-            </div>
+        <div class="legend">
+            <span>Less</span>
+            <div class="legend-item level-0"></div>
+            <div class="legend-item level-1"></div>
+            <div class="legend-item level-2"></div>
+            <div class="legend-item level-3"></div>
+            <div class="legend-item level-4"></div>
+            <span>More</span>
         </div>
     </div>
 
@@ -228,50 +322,96 @@
             const maxActivity = Math.max(...Object.values(activityData), 1);
             
             months.forEach((month, monthIndex) => {
-                const monthContainer = document.createElement('div');
-                monthContainer.className = 'month-container';
+                const monthDiv = document.createElement('div');
+                monthDiv.className = 'month';
                 
-                const monthLabel = document.createElement('div');
-                monthLabel.className = 'month-label';
-                monthLabel.textContent = month;
-                monthContainer.appendChild(monthLabel);
+                const monthTitle = document.createElement('div');
+                monthTitle.className = 'month-title';
+                monthTitle.textContent = month;
+                monthDiv.appendChild(monthTitle);
                 
-                const monthGrid = document.createElement('div');
-                monthGrid.className = 'month-grid';
+                const monthBody = document.createElement('div');
+                monthBody.className = 'month-body';
                 
                 const daysInMonth = new Date(currentYear, monthIndex + 1, 0).getDate();
                 const firstDayOfMonth = new Date(currentYear, monthIndex, 1).getDay();
                 
+                let currentWeek = document.createElement('div');
+                currentWeek.className = 'month-week';
+                
                 // Add empty cells for days before the first day of the month
                 for (let i = 0; i < firstDayOfMonth; i++) {
                     const emptyCell = document.createElement('div');
-                    emptyCell.className = 'day-cell empty';
-                    monthGrid.appendChild(emptyCell);
+                    emptyCell.className = 'month-blank-day-container';
+                    currentWeek.appendChild(emptyCell);
                 }
                 
                 // Add actual days
                 for (let day = 1; day <= daysInMonth; day++) {
-                    const dayCell = document.createElement('div');
-                    dayCell.className = 'day-cell';
-                    dayCell.textContent = day;
+                    const dayContainer = document.createElement('div');
+                    dayContainer.className = 'month-day-container';
                     
                     const dateStr = `${currentYear}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                     const activity = activityData[dateStr] || 0;
                     const level = getActivityLevel(activity, maxActivity);
                     
-                    dayCell.classList.add(`level-${level}`);
-                    dayCell.dataset.date = dateStr;
-                    dayCell.dataset.count = activity;
+                    if (activity > 0) {
+                        const calendarDay = document.createElement('div');
+                        calendarDay.className = 'calendar-day';
+                        
+                        const position = document.createElement('div');
+                        position.className = 'position';
+                        position.style.width = getCircleSize(activity, maxActivity) + 'px';
+                        position.style.height = getCircleSize(activity, maxActivity) + 'px';
+                        
+                        const measure = document.createElement('div');
+                        measure.className = `measure level-${level}`;
+                        
+                        position.appendChild(measure);
+                        calendarDay.appendChild(position);
+                        
+                        const dayLink = document.createElement('a');
+                        dayLink.href = '#';
+                        dayLink.textContent = day;
+                        dayLink.onclick = (e) => e.preventDefault();
+                        
+                        calendarDay.appendChild(dayLink);
+                        dayContainer.appendChild(calendarDay);
+                    } else {
+                        dayContainer.textContent = day;
+                    }
+                    
+                    dayContainer.dataset.date = dateStr;
+                    dayContainer.dataset.count = activity;
                     
                     // Add hover events
-                    dayCell.addEventListener('mouseenter', showTooltip);
-                    dayCell.addEventListener('mouseleave', hideTooltip);
+                    dayContainer.addEventListener('mouseenter', showTooltip);
+                    dayContainer.addEventListener('mouseleave', hideTooltip);
                     
-                    monthGrid.appendChild(dayCell);
+                    currentWeek.appendChild(dayContainer);
+                    
+                    // Start new week on Sunday (day 0) or when week is full
+                    if ((firstDayOfMonth + day) % 7 === 0 || day === daysInMonth) {
+                        // Fill remaining cells in the week if it's the last day
+                        if (day === daysInMonth) {
+                            const remainingCells = 7 - ((firstDayOfMonth + day) % 7);
+                            if (remainingCells < 7) {
+                                for (let i = 0; i < remainingCells; i++) {
+                                    const emptyCell = document.createElement('div');
+                                    emptyCell.className = 'month-blank-day-container';
+                                    currentWeek.appendChild(emptyCell);
+                                }
+                            }
+                        }
+                        
+                        monthBody.appendChild(currentWeek);
+                        currentWeek = document.createElement('div');
+                        currentWeek.className = 'month-week';
+                    }
                 }
                 
-                monthContainer.appendChild(monthGrid);
-                heatmapContainer.appendChild(monthContainer);
+                monthDiv.appendChild(monthBody);
+                heatmapContainer.appendChild(monthDiv);
             });
         }
         
@@ -282,6 +422,14 @@
             if (ratio <= 0.5) return 2;
             if (ratio <= 0.75) return 3;
             return 4;
+        }
+        
+        function getCircleSize(activity, maxActivity) {
+            if (activity === 0) return 0;
+            const ratio = activity / maxActivity;
+            const minSize = 20;
+            const maxSize = 80;
+            return minSize + (ratio * (maxSize - minSize));
         }
         
         function calculateCurrentStreak() {
