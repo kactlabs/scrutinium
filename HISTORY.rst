@@ -3,6 +3,25 @@
 History
 -------
 
+1.3.1 (2025-01-17)
+---------------------
+
+**Archive Page Improvements**
+
+* **ENHANCED**: Archive Page Sorting and Display
+  
+  - Implemented two-tier classification system for archive results
+  - Results with scores > 0 displayed at top, sorted by date (newest first)
+  - Results with all scores = 0 moved to bottom, sorted by date (newest first)
+  - Better browsing experience by prioritizing meaningful benchmark results
+
+* **IMPROVED**: Winner Display Format
+  
+  - Added overall score display next to winner name in archive cards
+  - Format: ``🏆Winner (score)`` (e.g., ``🏆Grok (9.830)``)
+  - Scores displayed with 3 decimal places for precision
+  - More informative at-a-glance view of benchmark quality
+
 1.3.0 (2025-01-11)
 ---------------------
 

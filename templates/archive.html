@@ -291,7 +291,7 @@
                     {% if result.winner %}
                     <div class="card-winner">
                         <span>🏆</span>
-                        <span>{{ result.winner }}</span>
+                        <span>{{ result.winner }} ({{ "%.3f"|format(result.winner_score) }})</span>
                     </div>
                     {% endif %}
                 </div>

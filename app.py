@@ -199,22 +199,43 @@ async def archive_page(request: Request):
         # Get all benchmark results from database
         results = await benchmark_handler.get_all_benchmark_results()
         
-        # Sort by creation date (newest first)
-        results.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
+        # Process results for display and classify them
+        results_with_scores = []  # Items with at least one score > 0
+        results_all_zeros = []    # Items with all scores = 0
         
-        # Process results for display
-        processed_results = []
         for result in results:
             # Get the question (truncated for display)
             question = result.get("question", "")
             question_preview = question[:100] + "..." if len(question) > 100 else question
             
-            # Get the winner (tool with highest overall score)
+            # Get all scores to check if all are zero
             overall_scores = result.get("overall_score", {})
+            truthfulness_scores = result.get("truthfulness", {})
+            creativity_scores = result.get("creativity", {})
+            coherence_scores = result.get("coherence", {})
+            utility_scores = result.get("utility", {})
+            
+            # Check if all scores are zero across all categories
+            all_scores = []
+            for scores_dict in [overall_scores, truthfulness_scores, creativity_scores, coherence_scores, utility_scores]:
+                for score in scores_dict.values():
+                    try:
+                        all_scores.append(float(score) if score else 0)
+                    except (ValueError, TypeError):
+                        all_scores.append(0)
+            
+            has_nonzero_score = any(score > 0 for score in all_scores)
+            
+            # Get the winner (tool with highest overall score)
             winner = ""
+            winner_score = 0
             if overall_scores:
-                winner = max(overall_scores.items(), key=lambda x: float(x[1]) if x[1] else 0)[0]
-                winner = winner.title()  # Capitalize first letter
+                winner_item = max(overall_scores.items(), key=lambda x: float(x[1]) if x[1] else 0)
+                winner = winner_item[0].title()  # Capitalize first letter
+                try:
+                    winner_score = round(float(winner_item[1]), 3) if winner_item[1] else 0
+                except (ValueError, TypeError):
+                    winner_score = 0
             
             # Count participating tools
             answers = {
@@ -237,17 +258,36 @@ async def archive_page(request: Request):
                 else:
                     date_str = created_at.strftime("%Y-%m-%d")
             
-            processed_results.append({
+            processed_item = {
                 "scid": result.get("scid", ""),
                 "share_uuid": result.get("share_uuid", ""),
                 "question": question,
                 "question_preview": question_preview,
                 "winner": winner,
+                "winner_score": winner_score,
                 "tool_count": tool_count,
                 "judge": result.get("judge", "").title(),
                 "created_at": date_str,
-                "category": result.get("category", "general")  # Use DB category or default to general
-            })
+                "category": result.get("category", "general"),  # Use DB category or default to general
+                "created_at_raw": result.get("created_at", datetime.min)  # For sorting
+            }
+            
+            # Classify into appropriate list
+            if has_nonzero_score:
+                results_with_scores.append(processed_item)
+            else:
+                results_all_zeros.append(processed_item)
+        
+        # Sort each group by creation date (newest first)
+        results_with_scores.sort(key=lambda x: x.get("created_at_raw", datetime.min), reverse=True)
+        results_all_zeros.sort(key=lambda x: x.get("created_at_raw", datetime.min), reverse=True)
+        
+        # Combine: items with scores on top, all-zero items at bottom
+        processed_results = results_with_scores + results_all_zeros
+        
+        # Remove the raw date field used for sorting
+        for item in processed_results:
+            item.pop("created_at_raw", None)
         
         return templates.TemplateResponse("archive.html", {
             "request": request,
